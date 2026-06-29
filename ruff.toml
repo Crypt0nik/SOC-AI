@@ -25,3 +25,4 @@ convention = "google"
 [lint.per-file-ignores]
 "tests/*" = ["D"]      # docstrings not required in tests
 "**/__init__.py" = ["D104"]
+"api/*" = ["B008"]     # FastAPI Depends() in function defaults is intentional
