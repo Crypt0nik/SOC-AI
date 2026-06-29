@@ -2,16 +2,12 @@
 ARG VITE_API_URL=http://localhost:8000
 
 # ── Stage 1: build ────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:20 AS builder
 
 WORKDIR /app
 
 COPY dashboard/package*.json ./
-RUN npm install && \
-    npm install --no-save \
-      @rollup/rollup-linux-arm64-musl \
-      @rollup/rollup-linux-x64-musl \
-      2>/dev/null || true
+RUN npm install
 
 COPY dashboard/ .
 
