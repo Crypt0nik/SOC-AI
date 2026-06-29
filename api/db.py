@@ -41,12 +41,13 @@ def fetch_alerts(
     Returns:
         Tuple of ``(rows_as_dicts, total_count)``.
     """
-    where = "WHERE a.severity = ?" if severity else ""
+    where = "WHERE COALESCE(t.severity, a.severity) = ?" if severity else ""
     base: list = [severity] if severity else []
+    join = "LEFT JOIN triage t ON t.alert_id = a.id"
 
     try:
         total: int = conn.execute(
-            f"SELECT COUNT(*) FROM alerts a {where}", base
+            f"SELECT COUNT(*) FROM alerts a {join} {where}", base
         ).fetchone()[0]
 
         rows = conn.execute(
@@ -54,8 +55,7 @@ def fetch_alerts(
             "a.matched_count, a.timestamp, a.status, a.created_at, "
             "t.severity AS triage_severity, t.attack_type, t.mitre_id, "
             "t.confidence, t.false_positive_risk, t.backend "
-            "FROM alerts a "
-            "LEFT JOIN triage t ON t.alert_id = a.id "
+            f"FROM alerts a {join} "
             f"{where} "
             "ORDER BY a.timestamp DESC "
             "LIMIT ? OFFSET ?",
@@ -143,7 +143,7 @@ def fetch_all_alerts_for_export(
     Returns:
         List of row dicts ordered by timestamp descending.
     """
-    where = "WHERE a.severity = ?" if severity else ""
+    where = "WHERE COALESCE(t.severity, a.severity) = ?" if severity else ""
     base: list = [severity] if severity else []
     try:
         rows = conn.execute(
