@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Events>
+<Event xmlns="http://schemas.microsoft.com/win/2004/08/events/event">
+  <System>
+    <EventID>4672</EventID>
+    <TimeCreated SystemTime="2026-06-29T10:10:00.000Z"/>
+    <Computer>DESKTOP-CORP01</Computer>
+  </System>
+  <EventData>
+    <Data Name="SubjectUserName">jdupont</Data>
+    <Data Name="SubjectDomainName">CORP</Data>
+    <Data Name="PrivilegeList">SeDebugPrivilege&#13;&#10;SeImpersonatePrivilege</Data>
+  </EventData>
+</Event>
+<Event xmlns="http://schemas.microsoft.com/win/2004/08/events/event">
+  <System>
+    <EventID>4720</EventID>
+    <TimeCreated SystemTime="2026-06-29T10:12:00.000Z"/>
+    <Computer>DESKTOP-CORP01</Computer>
+  </System>
+  <EventData>
+    <Data Name="SubjectUserName">administrator</Data>
+    <Data Name="TargetUserName">hackeruser</Data>
+    <Data Name="SubjectDomainName">CORP</Data>
+  </EventData>
+</Event>
+</Events>

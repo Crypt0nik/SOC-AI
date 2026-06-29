@@ -1,0 +1,27 @@
+# Ruff configuration — SOC-AI
+# PEP8 enforcement used by CI (`ruff check .`)
+line-length = 100
+target-version = "py311"
+
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "dashboard",
+]
+
+[lint]
+# pycodestyle (E/W), pyflakes (F), isort (I), pydocstyle (D), pyupgrade (UP), bugbear (B)
+select = ["E", "W", "F", "I", "B", "UP", "D"]
+ignore = [
+    "D203",  # one-blank-line-before-class (conflicts with D211)
+    "D213",  # multi-line-summary-second-line (conflicts with D212)
+]
+
+[lint.pydocstyle]
+convention = "google"
+
+[lint.per-file-ignores]
+"tests/*" = ["D"]      # docstrings not required in tests
+"**/__init__.py" = ["D104"]
