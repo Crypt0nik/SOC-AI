@@ -86,6 +86,25 @@ function KV({ label, children, mono = false }) {
   );
 }
 
+function SentenceList({ text }) {
+  const { T } = useTheme();
+  if (!text) return null;
+  const sentences = text
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 4);
+  if (sentences.length <= 1) {
+    return <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.65, color: T.text }}>{text}</p>;
+  }
+  return (
+    <ul style={{ margin: 0, paddingLeft: '16px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+      {sentences.map((s, i) => (
+        <li key={i} style={{ fontSize: '13px', lineHeight: 1.55, color: T.text }}>{s}</li>
+      ))}
+    </ul>
+  );
+}
+
 export default function AlertDetail({ alertId, onClose, onNavigate, canPrev, canNext }) {
   const { T } = useTheme();
   const [detail, setDetail] = useState(null);
@@ -272,8 +291,37 @@ export default function AlertDetail({ alertId, onClose, onNavigate, canPrev, can
                       <KV label="Backend">{detail.triage.backend}</KV>
                     </div>
                     <ConfidenceBar value={detail.triage.confidence} />
-                    <KV label="Summary">{detail.triage.summary}</KV>
-                    <KV label="Recommendation">{detail.triage.recommendation}</KV>
+
+                    {/* Summary */}
+                    {detail.triage.summary && (
+                      <div style={{ marginBottom: '14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '8px' }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ color: T.textDim, flexShrink: 0 }}>
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                          </svg>
+                          <span style={{ fontSize: '11px', color: T.textDim, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Analysis</span>
+                        </div>
+                        <SentenceList text={detail.triage.summary} />
+                      </div>
+                    )}
+
+                    {/* Recommendation */}
+                    {detail.triage.recommendation && (
+                      <div style={{
+                        backgroundColor: T.surfaceHover,
+                        border: `1px solid ${T.borderSubtle}`,
+                        borderRadius: '7px',
+                        padding: '12px 14px',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '8px' }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FF6600" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}>
+                            <polyline points="9 18 15 12 9 6"/>
+                          </svg>
+                          <span style={{ fontSize: '11px', color: '#FF6600', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>Recommended Action</span>
+                        </div>
+                        <SentenceList text={detail.triage.recommendation} />
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div style={{
