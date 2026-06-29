@@ -2,44 +2,102 @@ import { useEffect, useState } from 'react';
 import { fetchAlert } from '../api.js';
 import { SEVERITY_COLOR } from '../severity.js';
 
-function Field({ label, value, mono = false }) {
-  if (value == null || value === '') return null;
+function timeAgo(ts) {
+  if (!ts) return '—';
+  const diff = Date.now() - new Date(ts).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+function CopyableIP({ ip }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(ip).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
   return (
-    <div className="mb-3">
-      <div className="text-xs uppercase tracking-wider mb-1" style={{ color: '#4a5568' }}>{label}</div>
-      <div className={`text-sm ${mono ? 'font-mono' : ''}`} style={{ color: '#d1d5db' }}>{value}</div>
-    </div>
+    <button
+      onClick={copy}
+      title="Copy IP address"
+      style={{
+        backgroundColor: 'transparent',
+        border: 'none',
+        cursor: 'pointer',
+        color: copied ? '#4ade80' : '#e4e4e7',
+        fontFamily: 'monospace',
+        fontSize: '13px',
+        padding: 0,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '5px',
+        transition: 'color 0.15s',
+      }}
+    >
+      {ip}
+      {copied ? (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      ) : (
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#52525b" strokeWidth="1.5" strokeLinecap="round">
+          <rect x="9" y="9" width="13" height="13" rx="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+      )}
+    </button>
   );
 }
 
 function ConfidenceBar({ value }) {
-  const pct = Math.max(0, Math.min(100, value));
+  const pct = Math.max(0, Math.min(100, value ?? 0));
   const color = pct >= 80 ? '#FF0000' : pct >= 60 ? '#FF6600' : pct >= 40 ? '#FFB300' : '#0066CC';
   return (
-    <div className="mb-3">
-      <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-        Confidence
+    <div style={{ marginBottom: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+        <span style={{ fontSize: '11px', color: '#52525b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Confidence</span>
+        <span style={{ fontSize: '12px', fontWeight: 700, color }}>{pct}%</span>
       </div>
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#1e2a3a' }}>
-          <div
-            className="h-full rounded-full transition-all"
-            style={{ width: `${pct}%`, backgroundColor: color }}
-          />
-        </div>
-        <span className="text-sm font-bold" style={{ color: '#d1d5db' }}>{pct}%</span>
+      <div style={{ height: '3px', backgroundColor: '#27272a', borderRadius: '2px', overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct}%`, backgroundColor: color, borderRadius: '2px', transition: 'width 0.3s ease' }} />
       </div>
     </div>
   );
 }
 
-export default function AlertDetail({ alertId, onClose }) {
+function Divider({ title }) {
+  return (
+    <div style={{ borderTop: '1px solid #1c1c1f', paddingTop: '14px', marginTop: '14px' }}>
+      <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#52525b', marginBottom: '12px', fontWeight: 600 }}>
+        {title}
+      </div>
+    </div>
+  );
+}
+
+function KV({ label, children, mono = false }) {
+  if (children == null || children === '') return null;
+  return (
+    <div style={{ marginBottom: '10px' }}>
+      <div style={{ fontSize: '11px', color: '#52525b', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '3px' }}>{label}</div>
+      <div style={{ fontSize: '13px', color: '#e4e4e7', fontFamily: mono ? 'monospace' : 'inherit' }}>{children}</div>
+    </div>
+  );
+}
+
+export default function AlertDetail({ alertId, onClose, onNavigate, canPrev, canNext }) {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     setLoading(true);
+    setDetail(null);
     setError(null);
     fetchAlert(alertId)
       .then(setDetail)
@@ -47,124 +105,224 @@ export default function AlertDetail({ alertId, onClose }) {
       .finally(() => setLoading(false));
   }, [alertId]);
 
+  // Keyboard shortcuts: Esc=close, ←/→=navigate
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key === 'ArrowLeft' && canPrev) onNavigate(-1);
+      if (e.key === 'ArrowRight' && canNext) onNavigate(1);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose, onNavigate, canPrev, canNext]);
+
   const effectiveSev = detail?.triage?.severity ?? detail?.severity;
   const sevColor = effectiveSev ? (SEVERITY_COLOR[effectiveSev] ?? '#666666') : '#666666';
 
+  const NavBtn = ({ dir, enabled, title: t, children }) => (
+    <button
+      onClick={() => enabled && onNavigate(dir)}
+      disabled={!enabled}
+      title={t}
+      style={{
+        backgroundColor: 'transparent',
+        border: '1px solid #1c1c1f',
+        borderRadius: '5px',
+        width: '26px', height: '26px',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: enabled ? 'pointer' : 'default',
+        color: enabled ? '#71717a' : '#27272a',
+        flexShrink: 0,
+        transition: 'color 0.1s, border-color 0.1s',
+      }}
+      onMouseEnter={(e) => { if (enabled) { e.currentTarget.style.color = '#fafafa'; e.currentTarget.style.borderColor = '#27272a'; } }}
+      onMouseLeave={(e) => { if (enabled) { e.currentTarget.style.color = '#71717a'; e.currentTarget.style.borderColor = '#1c1c1f'; } }}
+    >
+      {children}
+    </button>
+  );
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-end"
-      style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}
+      style={{
+        position: 'fixed', inset: 0,
+        zIndex: 50,
+        display: 'flex',
+        alignItems: 'stretch',
+        justifyContent: 'flex-end',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        backdropFilter: 'blur(2px)',
+      }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      {/* Side panel — slides in from right */}
       <div
-        className="w-full max-w-2xl h-full overflow-y-auto flex flex-col slide-in-right"
-        style={{ backgroundColor: '#0f1524', borderLeft: `1px solid ${sevColor}44` }}
+        className="panel-enter"
+        style={{
+          width: '480px',
+          maxWidth: '100vw',
+          backgroundColor: '#111113',
+          borderLeft: '1px solid #1c1c1f',
+          display: 'flex',
+          flexDirection: 'column',
+          overflowY: 'auto',
+        }}
       >
-        {/* Colored header bar */}
-        <div
-          className="flex items-center justify-between px-6 py-4"
-          style={{
-            borderBottom: `1px solid #1e2a3a`,
-            borderLeft: `4px solid ${sevColor}`,
-          }}
-        >
-          <div>
-            <div className="flex items-center gap-2 mb-0.5">
-              <span
-                className="inline-block px-2 py-0.5 rounded text-xs font-bold text-white"
-                style={{ backgroundColor: sevColor }}
-              >
-                {effectiveSev ?? '…'}
-              </span>
-              <span className="text-xs font-mono" style={{ color: '#4a5568' }}>#{alertId}</span>
+        {/* Panel header */}
+        <div style={{
+          padding: '12px 16px',
+          borderBottom: '1px solid #1c1c1f',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          position: 'sticky',
+          top: 0,
+          backgroundColor: '#111113',
+          zIndex: 1,
+        }}>
+          <NavBtn dir={-1} enabled={canPrev} title="Previous (←)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          </NavBtn>
+          <NavBtn dir={1} enabled={canNext} title="Next (→)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </NavBtn>
+
+          <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: sevColor, display: 'inline-block', flexShrink: 0 }} />
+
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: '#fafafa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {detail?.rule_name ?? (loading ? 'Loading…' : '—')}
             </div>
-            <h2 className="text-base font-bold text-white leading-snug">
-              {detail?.rule_name ?? 'Loading…'}
-            </h2>
+            <div style={{ fontSize: '10px', color: '#3f3f46', fontFamily: 'monospace' }}>#{alertId}</div>
           </div>
+
           <button
             onClick={onClose}
-            className="flex-shrink-0 ml-4 w-7 h-7 flex items-center justify-center rounded transition-colors"
-            style={{ color: '#4a5568', border: '1px solid #1e2a3a' }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = '#e2e8f0'; e.currentTarget.style.borderColor = '#374151'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = '#4a5568'; e.currentTarget.style.borderColor = '#1e2a3a'; }}
-            aria-label="Close"
+            title="Close (Esc)"
+            style={{
+              backgroundColor: 'transparent',
+              border: '1px solid #1c1c1f',
+              borderRadius: '5px',
+              width: '26px', height: '26px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#71717a',
+              flexShrink: 0,
+              transition: 'color 0.1s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#fafafa'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#71717a'; }}
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
           </button>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 px-6 py-5">
+        {/* Panel body */}
+        <div style={{ flex: 1, padding: '16px', overflowY: 'auto' }}>
           {loading && (
-            <div className="text-center py-16" style={{ color: '#4a5568' }}>Loading…</div>
+            <div style={{ textAlign: 'center', padding: '48px 0', color: '#3f3f46', fontSize: '13px' }}>Loading…</div>
           )}
-
           {error && (
-            <div className="text-center py-16" style={{ color: '#f87171' }}>
-              <p>Failed to load alert</p>
-              <p className="text-sm mt-1" style={{ color: '#4a5568' }}>{error}</p>
+            <div style={{ textAlign: 'center', padding: '48px 0' }}>
+              <p style={{ color: '#f87171', fontSize: '13px', marginBottom: '4px' }}>Failed to load alert</p>
+              <p style={{ color: '#3f3f46', fontSize: '12px' }}>{error}</p>
             </div>
           )}
-
           {detail && (
             <>
-              {/* Detection metadata */}
-              <section className="mb-6">
-                <h3 className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: '#4a5568' }}>
-                  Detection
-                </h3>
-                <div className="grid grid-cols-2 gap-x-6">
-                  <Field label="Rule ID" value={detail.rule_id} mono />
-                  <Field label="Source IP" value={detail.source_ip} mono />
-                  <Field label="Matched Count" value={detail.matched_count} />
-                  <Field label="Status" value={detail.status} />
-                  <Field label="Timestamp" value={detail.timestamp} />
-                </div>
-              </section>
+              {/* Severity + meta */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                <span style={{
+                  backgroundColor: sevColor,
+                  color: 'white',
+                  fontSize: '11px', fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  letterSpacing: '0.04em',
+                }}>
+                  {effectiveSev}
+                </span>
+                <span style={{ fontSize: '11px', color: '#52525b' }}>{timeAgo(detail.timestamp)}</span>
+                {detail.status === 'triaged' && (
+                  <span style={{ fontSize: '10px', color: '#4ade80', backgroundColor: '#0d2211', border: '1px solid #166534', borderRadius: '3px', padding: '1px 6px' }}>
+                    triaged ✓
+                  </span>
+                )}
+              </div>
+
+              {/* Detection grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+                <KV label="Rule ID"><span style={{ fontFamily: 'monospace' }}>{detail.rule_id}</span></KV>
+                <KV label="Source IP">
+                  {detail.source_ip ? <CopyableIP ip={detail.source_ip} /> : <span style={{ color: '#3f3f46' }}>—</span>}
+                </KV>
+                <KV label="Matched">{detail.matched_count}×</KV>
+                <KV label="Status">{detail.status}</KV>
+              </div>
 
               {/* Raw log */}
-              <section className="mb-6">
-                <h3 className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: '#4a5568' }}>
-                  Raw Log
-                </h3>
-                <pre
-                  className="rounded p-3 text-xs font-mono whitespace-pre-wrap break-all overflow-x-auto"
-                  style={{ backgroundColor: '#070b13', color: '#4ade80', border: '1px solid #1e2a3a' }}
-                >
-                  {detail.raw_log}
-                </pre>
-              </section>
+              <Divider title="Raw Log" />
+              <pre style={{
+                backgroundColor: '#0a0a0a',
+                border: '1px solid #1c1c1f',
+                borderRadius: '6px',
+                padding: '10px 12px',
+                fontSize: '11px',
+                fontFamily: 'monospace',
+                color: '#4ade80',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-all',
+                maxHeight: '180px',
+                overflowY: 'auto',
+                margin: 0,
+                lineHeight: 1.5,
+              }}>
+                {detail.raw_log}
+              </pre>
 
-              {/* Triage */}
+              {/* LLM Triage */}
+              <Divider title="LLM Triage Analysis" />
               {detail.triage ? (
-                <section>
-                  <h3 className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: '#4a5568' }}>
-                    LLM Triage Analysis
-                  </h3>
-                  <div className="rounded p-4" style={{ backgroundColor: '#070b13', border: '1px solid #1e2a3a' }}>
-                    <div className="grid grid-cols-2 gap-x-6 mb-2">
-                      <Field label="Attack Type" value={detail.triage.attack_type} />
-                      <Field label="MITRE ATT&CK" value={detail.triage.mitre_id} mono />
-                      <Field label="False Positive Risk" value={detail.triage.false_positive_risk} />
-                      <Field label="Backend" value={detail.triage.backend} />
-                    </div>
-                    <ConfidenceBar value={detail.triage.confidence} />
-                    <Field label="Summary" value={detail.triage.summary} />
-                    <Field label="Recommendation" value={detail.triage.recommendation} />
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px', marginBottom: '4px' }}>
+                    <KV label="Attack Type">{detail.triage.attack_type}</KV>
+                    <KV label="MITRE ATT&CK">
+                      {detail.triage.mitre_id
+                        ? <span style={{ fontFamily: 'monospace', color: '#60a5fa' }}>{detail.triage.mitre_id}</span>
+                        : <span style={{ color: '#3f3f46' }}>—</span>}
+                    </KV>
+                    <KV label="FP Risk">{detail.triage.false_positive_risk}</KV>
+                    <KV label="Backend">{detail.triage.backend}</KV>
                   </div>
-                </section>
+                  <ConfidenceBar value={detail.triage.confidence} />
+                  <KV label="Summary">{detail.triage.summary}</KV>
+                  <KV label="Recommendation">{detail.triage.recommendation}</KV>
+                </>
               ) : (
-                <section>
-                  <div
-                    className="rounded p-4 text-center text-sm"
-                    style={{ backgroundColor: '#070b13', border: '1px solid #1e2a3a', color: '#4a5568' }}
-                  >
-                    Not yet triaged — waiting for LLM agent
-                  </div>
-                </section>
+                <div style={{
+                  padding: '16px',
+                  textAlign: 'center',
+                  fontSize: '13px',
+                  color: '#3f3f46',
+                  backgroundColor: '#0a0a0a',
+                  border: '1px solid #1c1c1f',
+                  borderRadius: '6px',
+                }}>
+                  Awaiting LLM triage…
+                </div>
               )}
+
+              {/* Keyboard shortcuts hint */}
+              <div style={{ marginTop: '20px', paddingTop: '12px', borderTop: '1px solid #1c1c1f', display: 'flex', gap: '14px' }}>
+                {[['Esc', 'close'], ['← →', 'navigate']].map(([key, label]) => (
+                  <span key={key} style={{ fontSize: '11px', color: '#27272a', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <kbd style={{ fontFamily: 'monospace', border: '1px solid #27272a', borderRadius: '3px', padding: '1px 5px', color: '#3f3f46', fontSize: '10px' }}>{key}</kbd>
+                    {label}
+                  </span>
+                ))}
+              </div>
             </>
           )}
         </div>

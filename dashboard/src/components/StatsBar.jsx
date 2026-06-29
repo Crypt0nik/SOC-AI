@@ -17,25 +17,34 @@ export default function StatsBar() {
     return () => { alive = false; clearInterval(id); };
   }, []);
 
-  if (error) return <div className="text-xs italic" style={{ color: '#4a5568' }}>Stats unavailable</div>;
-  if (!stats) return <div className="text-xs italic" style={{ color: '#374151' }}>Loading…</div>;
+  if (error || !stats) return null;
+
+  const hasAny = ALL_SEVERITIES.some((s) => (stats.counts?.[s] ?? 0) > 0);
+  if (!hasAny) return (
+    <span style={{ fontSize: '12px', color: '#3f3f46' }}>No alerts in 24h</span>
+  );
 
   return (
-    <div className="space-y-2.5">
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
       {ALL_SEVERITIES.map((sev) => {
         const count = stats.counts?.[sev] ?? 0;
+        if (count === 0) return null;
         const color = SEVERITY_COLOR[sev];
         const isCritical = sev === 'CRITICAL';
         return (
-          <div key={sev} className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span
-                className={`inline-block w-2 h-2 rounded-full flex-shrink-0${isCritical && count > 0 ? ' dot-pulse' : ''}`}
-                style={{ backgroundColor: color }}
-              />
-              <span className="text-xs" style={{ color: '#9ca3af' }}>{sev}</span>
-            </div>
-            <span className="text-sm font-bold tabular-nums" style={{ color }}>{count}</span>
+          <div key={sev} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <span
+              className={isCritical ? 'dot-pulse' : ''}
+              style={{
+                width: '6px', height: '6px',
+                borderRadius: '50%',
+                backgroundColor: color,
+                display: 'inline-block',
+                flexShrink: 0,
+              }}
+            />
+            <span style={{ fontSize: '12px', fontWeight: 600, color, fontVariantNumeric: 'tabular-nums' }}>{count}</span>
+            <span style={{ fontSize: '12px', color: '#52525b' }}>{sev}</span>
           </div>
         );
       })}
