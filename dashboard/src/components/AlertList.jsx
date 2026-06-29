@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { fetchAlerts } from '../api.js';
 import { SEVERITY_COLOR } from '../severity.js';
 import { useTheme } from '../theme.js';
@@ -185,16 +185,25 @@ function AlertCard({ alert, onSelect, isSelected }) {
   );
 }
 
-export default function AlertList({ severity, search, sortBy, statusFilter, onSelect, selectedId, onAlertsLoaded }) {
+export default function AlertList({ severity, refreshKey, search, sortBy, statusFilter, onSelect, selectedId, onAlertsLoaded }) {
   const { T } = useTheme();
   const [data, setData] = useState(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [animate, setAnimate] = useState(true);
+  const prevPage = useRef(page);
+  const isFirst = useRef(true);
 
   useEffect(() => { setPage(1); }, [severity]);
 
   useEffect(() => {
+    const pageChanged = prevPage.current !== page;
+    prevPage.current = page;
+    const shouldAnimate = isFirst.current || pageChanged;
+    isFirst.current = false;
+    setAnimate(shouldAnimate);
+
     let alive = true;
     setLoading(true);
     setError(null);
@@ -203,7 +212,7 @@ export default function AlertList({ severity, search, sortBy, statusFilter, onSe
       .catch((e) => { if (alive) setError(e.message); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [severity, page]);
+  }, [severity, page, refreshKey]);
 
   // Client-side filters + sort
   let filtered = data?.items ?? [];
@@ -279,7 +288,7 @@ export default function AlertList({ severity, search, sortBy, statusFilter, onSe
   }
 
   return (
-    <div className="fade-in">
+    <div className={animate ? 'fade-in' : ''}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
         {filtered.map((alert) => (
           <AlertCard key={alert.id} alert={alert} onSelect={onSelect} isSelected={alert.id === selectedId} />

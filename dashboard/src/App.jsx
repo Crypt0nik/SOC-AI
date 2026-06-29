@@ -387,8 +387,9 @@ export default function App() {
         {/* ── Main ── */}
         <main style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
           <AlertList
-            key={`${severity ?? 'all'}-${refreshKey}`}
+            key={severity ?? 'all'}
             severity={severity}
+            refreshKey={refreshKey}
             search={search}
             sortBy={sortBy}
             statusFilter={statusFilter}
