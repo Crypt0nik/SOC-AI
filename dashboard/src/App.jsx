@@ -30,7 +30,7 @@ function timeAgo(date) {
 }
 
 export default function App() {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(false);
   const T = isDark ? DARK : LIGHT;
 
   const [severity, setSeverity] = useState(null);
