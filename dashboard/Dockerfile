@@ -7,7 +7,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY dashboard/package*.json ./
-RUN npm install
+RUN npm install && \
+    npm install --no-save @rollup/rollup-linux-arm64-musl 2>/dev/null || true
 
 COPY dashboard/ .
 
