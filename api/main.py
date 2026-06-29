@@ -19,6 +19,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
 from api.db import (
+    delete_alert,
+    delete_all_alerts,
     fetch_alert_by_id,
     fetch_alerts,
     fetch_all_alerts_for_export,
@@ -50,7 +52,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["GET"],
+    allow_methods=["GET", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -188,6 +190,42 @@ def get_alert(
         raw_log=row["raw_log"],
         triage=_build_triage_detail(row),
     )
+
+
+@app.delete("/alerts")
+def clear_all_alerts(db: sqlite3.Connection = Depends(get_db)) -> dict:
+    """Delete all alerts and their triage records.
+
+    Args:
+        db: Injected SQLite connection.
+
+    Returns:
+        Dict with count of deleted alerts.
+    """
+    count = delete_all_alerts(db)
+    logger.info("Cleared %d alerts", count)
+    return {"deleted": count}
+
+
+@app.delete("/alerts/{alert_id}")
+def remove_alert(alert_id: int, db: sqlite3.Connection = Depends(get_db)) -> dict:
+    """Delete a single alert and its triage record.
+
+    Args:
+        alert_id: Alert primary key.
+        db: Injected SQLite connection.
+
+    Returns:
+        Dict with deleted id.
+
+    Raises:
+        HTTPException: 404 if the alert does not exist.
+    """
+    ok = delete_alert(db, alert_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
+    logger.info("Deleted alert %d", alert_id)
+    return {"deleted": alert_id}
 
 
 @app.get("/stats", response_model=StatsResponse)

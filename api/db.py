@@ -131,6 +131,45 @@ def fetch_stats(
     return {row["eff_sev"]: row["cnt"] for row in rows}
 
 
+def delete_alert(conn: sqlite3.Connection, alert_id: int) -> bool:
+    """Delete a single alert and its triage record.
+
+    Args:
+        conn: Open SQLite connection.
+        alert_id: Primary key to delete.
+
+    Returns:
+        True if an alert was deleted, False if not found.
+    """
+    try:
+        conn.execute("DELETE FROM triage WHERE alert_id = ?", (alert_id,))
+        cur = conn.execute("DELETE FROM alerts WHERE id = ?", (alert_id,))
+        conn.commit()
+        return cur.rowcount > 0
+    except sqlite3.Error as exc:
+        logger.error("delete_alert(%d) failed: %s", alert_id, exc)
+        return False
+
+
+def delete_all_alerts(conn: sqlite3.Connection) -> int:
+    """Delete all alerts and triage records.
+
+    Args:
+        conn: Open SQLite connection.
+
+    Returns:
+        Number of alerts deleted.
+    """
+    try:
+        conn.execute("DELETE FROM triage")
+        cur = conn.execute("DELETE FROM alerts")
+        conn.commit()
+        return cur.rowcount
+    except sqlite3.Error as exc:
+        logger.error("delete_all_alerts failed: %s", exc)
+        return 0
+
+
 def fetch_all_alerts_for_export(
     conn: sqlite3.Connection, severity: str | None
 ) -> list[dict]:

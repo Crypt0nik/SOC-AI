@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { fetchAlerts } from '../api.js';
+import { deleteAlert, fetchAlerts } from '../api.js';
 import { SEVERITY_COLOR } from '../severity.js';
 import { useTheme } from '../theme.js';
 
@@ -68,8 +68,10 @@ function CopyIP({ ip }) {
   );
 }
 
-function AlertCard({ alert, onSelect, isSelected }) {
+function AlertCard({ alert, onSelect, isSelected, onDelete }) {
   const { T } = useTheme();
+  const [hovering, setHovering] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const effectiveSev = alert.triage?.severity ?? alert.severity;
   const color = SEVERITY_COLOR[effectiveSev] ?? '#666666';
   const isCritical = effectiveSev === 'CRITICAL';
@@ -77,6 +79,14 @@ function AlertCard({ alert, onSelect, isSelected }) {
   const baseBg = isCritical ? T.surfaceCritical : T.surface;
   const hoverBg = isCritical ? T.surfaceCriticalHover : T.surfaceHover;
   const baseBorder = isSelected ? T.borderSelected : isCritical ? T.borderCritical : T.borderSubtle;
+
+  const handleDelete = (e) => {
+    e.stopPropagation();
+    setDeleting(true);
+    deleteAlert(alert.id)
+      .then(() => onDelete(alert.id))
+      .catch(() => setDeleting(false));
+  };
 
   return (
     <div
@@ -89,16 +99,46 @@ function AlertCard({ alert, onSelect, isSelected }) {
         cursor: 'pointer',
         padding: '10px 14px',
         transition: 'background-color 0.1s, border-color 0.1s',
+        position: 'relative',
+        opacity: deleting ? 0.4 : 1,
       }}
       onMouseEnter={(e) => {
+        setHovering(true);
         e.currentTarget.style.backgroundColor = hoverBg;
         if (!isSelected) e.currentTarget.style.borderColor = isCritical ? T.borderCritical : T.border;
       }}
       onMouseLeave={(e) => {
+        setHovering(false);
         e.currentTarget.style.backgroundColor = baseBg;
         e.currentTarget.style.borderColor = baseBorder;
       }}
     >
+      {/* Delete button — shown on hover */}
+      {hovering && !deleting && (
+        <button
+          onClick={handleDelete}
+          title="Delete alert"
+          style={{
+            position: 'absolute', top: '8px', right: '8px',
+            backgroundColor: 'transparent',
+            border: `1px solid ${T.borderSubtle}`,
+            borderRadius: '4px',
+            width: '22px', height: '22px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: T.textDim,
+            transition: 'all 0.1s', zIndex: 1,
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = T.errorText; e.currentTarget.style.borderColor = T.errorBorder; e.currentTarget.style.backgroundColor = T.errorBg; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = T.textDim; e.currentTarget.style.borderColor = T.borderSubtle; e.currentTarget.style.backgroundColor = 'transparent'; }}
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6"/><path d="M14 11v6"/>
+            <path d="M9 6V4h6v2"/>
+          </svg>
+        </button>
+      )}
       {/* Row 1: severity indicator + rule name + time + chevron */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '5px' }}>
         {/* Severity dot */}
@@ -185,7 +225,7 @@ function AlertCard({ alert, onSelect, isSelected }) {
   );
 }
 
-export default function AlertList({ severity, refreshKey, search, sortBy, statusFilter, onSelect, selectedId, onAlertsLoaded }) {
+export default function AlertList({ severity, refreshKey, search, sortBy, statusFilter, onSelect, selectedId, onAlertsLoaded, onDeleted }) {
   const { T } = useTheme();
   const [data, setData] = useState(null);
   const [page, setPage] = useState(1);
@@ -291,7 +331,16 @@ export default function AlertList({ severity, refreshKey, search, sortBy, status
     <div className={animate ? 'fade-in' : ''}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
         {filtered.map((alert) => (
-          <AlertCard key={alert.id} alert={alert} onSelect={onSelect} isSelected={alert.id === selectedId} />
+          <AlertCard
+            key={alert.id}
+            alert={alert}
+            onSelect={onSelect}
+            isSelected={alert.id === selectedId}
+            onDelete={(id) => {
+              setData((prev) => prev ? { ...prev, items: prev.items.filter((a) => a.id !== id), total: prev.total - 1 } : prev);
+              onDeleted?.(id);
+            }}
+          />
         ))}
       </div>
 

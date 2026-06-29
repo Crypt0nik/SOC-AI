@@ -5,6 +5,7 @@ import ExportButton from './components/ExportButton.jsx';
 import SeverityFilter from './components/SeverityFilter.jsx';
 import StatsBar from './components/StatsBar.jsx';
 import { ThemeContext, DARK, LIGHT } from './theme.js';
+import { deleteAllAlerts } from './api.js';
 
 const SORT_OPTIONS = [
   { label: 'Newest first', value: 'date_desc' },
@@ -92,6 +93,14 @@ export default function App() {
   }, [selectedId, alertIds]);
 
   const currentIdx = selectedId !== null ? alertIds.indexOf(selectedId) : -1;
+
+  const handleClearAll = useCallback(() => {
+    if (!window.confirm('Delete all alerts? This cannot be undone.')) return;
+    deleteAllAlerts().then(() => {
+      setSelectedId(null);
+      setRefreshKey((k) => k + 1);
+    });
+  }, []);
 
   const btnStyle = (active) => ({
     backgroundColor: 'transparent',
@@ -269,6 +278,34 @@ export default function App() {
 
           <div style={{ width: '1px', height: '16px', backgroundColor: T.borderSubtle, margin: '0 4px' }} />
 
+          {/* Clear all */}
+          <button
+            onClick={handleClearAll}
+            title="Delete all alerts"
+            style={{
+              backgroundColor: 'transparent',
+              border: `1px solid ${T.borderSubtle}`,
+              borderRadius: '6px',
+              padding: '4px 10px',
+              fontSize: '12px',
+              color: T.textDim,
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '5px',
+              transition: 'all 0.1s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = T.errorText; e.currentTarget.style.borderColor = T.errorBorder; e.currentTarget.style.backgroundColor = T.errorBg; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = T.textDim; e.currentTarget.style.borderColor = T.borderSubtle; e.currentTarget.style.backgroundColor = 'transparent'; }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+            </svg>
+            Clear all
+          </button>
+
+          <div style={{ width: '1px', height: '16px', backgroundColor: T.borderSubtle, margin: '0 4px' }} />
+
           {/* Status filter dropdown */}
           <div style={{ position: 'relative' }} ref={statusRef}>
             <button
@@ -396,6 +433,7 @@ export default function App() {
             onSelect={setSelectedId}
             selectedId={selectedId}
             onAlertsLoaded={handleAlertsLoaded}
+            onDeleted={(id) => { if (selectedId === id) setSelectedId(null); }}
           />
         </main>
 

@@ -18,3 +18,15 @@ export const fetchStats = () => apiFetch('/stats');
 
 export const exportUrl = (severity) =>
   `${BASE}/export${severity ? `?severity=${severity}` : ''}`;
+
+export const deleteAlert = (id) =>
+  fetch(`${BASE}/alerts/${id}`, { method: 'DELETE' }).then((r) => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  });
+
+export const deleteAllAlerts = () =>
+  fetch(`${BASE}/alerts`, { method: 'DELETE' }).then((r) => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  });
