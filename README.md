@@ -2,7 +2,7 @@
 
 > **Security Operations Center** propulsé par LLM — Triage automatique des alertes pour PME et ETI
 
-[![Build](https://github.com/your-org/soc-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/soc-ai/actions)
+[![Build](https://github.com/Crypt0nik/soc-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/Crypt0nik/soc-ai/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?logo=python)](https://python.org)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](docker-compose.yml)
