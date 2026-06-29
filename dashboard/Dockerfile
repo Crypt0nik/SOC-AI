@@ -8,7 +8,10 @@ WORKDIR /app
 
 COPY dashboard/package*.json ./
 RUN npm install && \
-    npm install --no-save @rollup/rollup-linux-arm64-musl 2>/dev/null || true
+    npm install --no-save \
+      @rollup/rollup-linux-arm64-musl \
+      @rollup/rollup-linux-x64-musl \
+      2>/dev/null || true
 
 COPY dashboard/ .
 
