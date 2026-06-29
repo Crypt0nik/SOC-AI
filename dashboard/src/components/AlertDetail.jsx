@@ -6,8 +6,8 @@ function Field({ label, value, mono = false }) {
   if (value == null || value === '') return null;
   return (
     <div className="mb-3">
-      <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">{label}</div>
-      <div className={`text-gray-200 text-sm ${mono ? 'font-mono' : ''}`}>{value}</div>
+      <div className="text-xs uppercase tracking-wider mb-1" style={{ color: '#4a5568' }}>{label}</div>
+      <div className={`text-sm ${mono ? 'font-mono' : ''}`} style={{ color: '#d1d5db' }}>{value}</div>
     </div>
   );
 }
@@ -21,13 +21,13 @@ function ConfidenceBar({ value }) {
         Confidence
       </div>
       <div className="flex items-center gap-3">
-        <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+        <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#1e2a3a' }}>
           <div
             className="h-full rounded-full transition-all"
             style={{ width: `${pct}%`, backgroundColor: color }}
           />
         </div>
-        <span className="text-sm font-bold text-gray-300">{pct}%</span>
+        <span className="text-sm font-bold" style={{ color: '#d1d5db' }}>{pct}%</span>
       </div>
     </div>
   );
@@ -51,82 +51,88 @@ export default function AlertDetail({ alertId, onClose }) {
   const sevColor = effectiveSev ? (SEVERITY_COLOR[effectiveSev] ?? '#666666') : '#666666';
 
   return (
-    /* Overlay */
     <div
       className="fixed inset-0 z-50 flex items-start justify-end"
-      style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+      style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      {/* Side panel */}
-      <div className="w-full max-w-2xl h-full overflow-y-auto bg-gray-900 border-l border-gray-700 flex flex-col">
-        {/* Header */}
+      {/* Side panel — slides in from right */}
+      <div
+        className="w-full max-w-2xl h-full overflow-y-auto flex flex-col slide-in-right"
+        style={{ backgroundColor: '#0f1524', borderLeft: `1px solid ${sevColor}44` }}
+      >
+        {/* Colored header bar */}
         <div
-          className="flex items-center justify-between px-6 py-4 border-b border-gray-800"
-          style={{ borderLeftColor: sevColor, borderLeftWidth: '4px' }}
+          className="flex items-center justify-between px-6 py-4"
+          style={{
+            borderBottom: `1px solid #1e2a3a`,
+            borderLeft: `4px solid ${sevColor}`,
+          }}
         >
           <div>
-            <h2 className="text-lg font-bold text-white">
-              Alert #{alertId}
+            <div className="flex items-center gap-2 mb-0.5">
+              <span
+                className="inline-block px-2 py-0.5 rounded text-xs font-bold text-white"
+                style={{ backgroundColor: sevColor }}
+              >
+                {effectiveSev ?? '…'}
+              </span>
+              <span className="text-xs font-mono" style={{ color: '#4a5568' }}>#{alertId}</span>
+            </div>
+            <h2 className="text-base font-bold text-white leading-snug">
+              {detail?.rule_name ?? 'Loading…'}
             </h2>
-            {detail && (
-              <p className="text-sm text-gray-400">{detail.rule_name}</p>
-            )}
           </div>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-200 text-xl font-light transition-colors px-2"
+            className="flex-shrink-0 ml-4 w-7 h-7 flex items-center justify-center rounded transition-colors"
+            style={{ color: '#4a5568', border: '1px solid #1e2a3a' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#e2e8f0'; e.currentTarget.style.borderColor = '#374151'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#4a5568'; e.currentTarget.style.borderColor = '#1e2a3a'; }}
             aria-label="Close"
           >
-            x
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
 
         {/* Body */}
-        <div className="flex-1 px-6 py-4">
+        <div className="flex-1 px-6 py-5">
           {loading && (
-            <div className="text-center py-16 text-gray-500">Loading…</div>
+            <div className="text-center py-16" style={{ color: '#4a5568' }}>Loading…</div>
           )}
 
           {error && (
-            <div className="text-center py-16 text-red-400">
+            <div className="text-center py-16" style={{ color: '#f87171' }}>
               <p>Failed to load alert</p>
-              <p className="text-sm text-gray-500 mt-1">{error}</p>
+              <p className="text-sm mt-1" style={{ color: '#4a5568' }}>{error}</p>
             </div>
           )}
 
           {detail && (
             <>
-              {/* Alert metadata */}
+              {/* Detection metadata */}
               <section className="mb-6">
-                <h3 className="text-xs uppercase tracking-widest text-gray-500 mb-3 font-semibold">
+                <h3 className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: '#4a5568' }}>
                   Detection
                 </h3>
                 <div className="grid grid-cols-2 gap-x-6">
-                  <div className="mb-3">
-                    <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-                      Severity
-                    </div>
-                    <span
-                      className="inline-block px-2 py-0.5 rounded text-xs font-bold text-white"
-                      style={{ backgroundColor: sevColor }}
-                    >
-                      {effectiveSev}
-                    </span>
-                  </div>
                   <Field label="Rule ID" value={detail.rule_id} mono />
                   <Field label="Source IP" value={detail.source_ip} mono />
                   <Field label="Matched Count" value={detail.matched_count} />
-                  <Field label="Timestamp" value={detail.timestamp} />
                   <Field label="Status" value={detail.status} />
+                  <Field label="Timestamp" value={detail.timestamp} />
                 </div>
               </section>
 
               {/* Raw log */}
               <section className="mb-6">
-                <h3 className="text-xs uppercase tracking-widest text-gray-500 mb-3 font-semibold">
+                <h3 className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: '#4a5568' }}>
                   Raw Log
                 </h3>
-                <pre className="bg-gray-950 rounded p-3 text-xs font-mono text-green-400 whitespace-pre-wrap break-all overflow-x-auto">
+                <pre
+                  className="rounded p-3 text-xs font-mono whitespace-pre-wrap break-all overflow-x-auto"
+                  style={{ backgroundColor: '#070b13', color: '#4ade80', border: '1px solid #1e2a3a' }}
+                >
                   {detail.raw_log}
                 </pre>
               </section>
@@ -134,21 +140,14 @@ export default function AlertDetail({ alertId, onClose }) {
               {/* Triage */}
               {detail.triage ? (
                 <section>
-                  <h3 className="text-xs uppercase tracking-widest text-gray-500 mb-3 font-semibold">
+                  <h3 className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: '#4a5568' }}>
                     LLM Triage Analysis
                   </h3>
-                  <div className="bg-gray-950 rounded p-4 border border-gray-800">
+                  <div className="rounded p-4" style={{ backgroundColor: '#070b13', border: '1px solid #1e2a3a' }}>
                     <div className="grid grid-cols-2 gap-x-6 mb-2">
                       <Field label="Attack Type" value={detail.triage.attack_type} />
                       <Field label="MITRE ATT&CK" value={detail.triage.mitre_id} mono />
-                      <div className="mb-3">
-                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-                          False Positive Risk
-                        </div>
-                        <span className="text-sm text-gray-200">
-                          {detail.triage.false_positive_risk}
-                        </span>
-                      </div>
+                      <Field label="False Positive Risk" value={detail.triage.false_positive_risk} />
                       <Field label="Backend" value={detail.triage.backend} />
                     </div>
                     <ConfidenceBar value={detail.triage.confidence} />
@@ -158,7 +157,10 @@ export default function AlertDetail({ alertId, onClose }) {
                 </section>
               ) : (
                 <section>
-                  <div className="bg-gray-950 rounded p-4 border border-gray-800 text-center text-gray-500 text-sm">
+                  <div
+                    className="rounded p-4 text-center text-sm"
+                    style={{ backgroundColor: '#070b13', border: '1px solid #1e2a3a', color: '#4a5568' }}
+                  >
                     Not yet triaged — waiting for LLM agent
                   </div>
                 </section>

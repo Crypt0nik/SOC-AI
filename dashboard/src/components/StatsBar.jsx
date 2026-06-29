@@ -17,34 +17,28 @@ export default function StatsBar() {
     return () => { alive = false; clearInterval(id); };
   }, []);
 
-  if (error) {
-    return (
-      <div className="text-xs text-gray-500 italic">Stats unavailable</div>
-    );
-  }
-
-  if (!stats) {
-    return <div className="text-xs text-gray-600 italic">Loading stats…</div>;
-  }
+  if (error) return <div className="text-xs italic" style={{ color: '#4a5568' }}>Stats unavailable</div>;
+  if (!stats) return <div className="text-xs italic" style={{ color: '#374151' }}>Loading…</div>;
 
   return (
-    <div className="flex items-center gap-3 text-xs font-semibold">
-      {ALL_SEVERITIES.map((sev) => (
-        <span key={sev} className="flex items-center gap-1">
-          <span
-            className="inline-block w-2 h-2 rounded-full"
-            style={{ backgroundColor: SEVERITY_COLOR[sev] }}
-          />
-          <span className="text-gray-400">{sev}</span>
-          <span
-            className="font-bold"
-            style={{ color: SEVERITY_COLOR[sev] }}
-          >
-            {stats.counts?.[sev] ?? 0}
-          </span>
-        </span>
-      ))}
-      <span className="text-gray-600 ml-1">/ 24h</span>
+    <div className="space-y-2.5">
+      {ALL_SEVERITIES.map((sev) => {
+        const count = stats.counts?.[sev] ?? 0;
+        const color = SEVERITY_COLOR[sev];
+        const isCritical = sev === 'CRITICAL';
+        return (
+          <div key={sev} className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span
+                className={`inline-block w-2 h-2 rounded-full flex-shrink-0${isCritical && count > 0 ? ' dot-pulse' : ''}`}
+                style={{ backgroundColor: color }}
+              />
+              <span className="text-xs" style={{ color: '#9ca3af' }}>{sev}</span>
+            </div>
+            <span className="text-sm font-bold tabular-nums" style={{ color }}>{count}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
