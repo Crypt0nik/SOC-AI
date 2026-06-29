@@ -7,7 +7,7 @@ FROM node:20 AS builder
 WORKDIR /app
 
 COPY dashboard/package*.json ./
-RUN npm install
+RUN rm -f package-lock.json && npm install
 
 COPY dashboard/ .
 
