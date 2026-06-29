@@ -1,0 +1,7 @@
+dashboard/node_modules
+**/__pycache__
+**/*.pyc
+**/*.pyo
+.venv
+.git
+*.docx
