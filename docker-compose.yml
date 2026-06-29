@@ -1,5 +1,3 @@
-version: "3.9"
-
 # SOC-AI v1.0 — Community Edition
 # Start: docker compose up
 # All env vars can be overridden via a .env file (copy .env.example → .env).
@@ -9,10 +7,6 @@ x-common-env: &common-env
   POLL_INTERVAL: ${POLL_INTERVAL:-2}
   LOG_DIR: ${LOG_DIR:-/logs}
   RETENTION_DAYS: ${RETENTION_DAYS:-90}
-
-volumes:
-  db_data:        # persists SQLite across restarts
-  log_data:       # shared log directory (parser reads, you drop files here)
 
 networks:
   soc_net:
@@ -130,6 +124,6 @@ services:
       - ollama  # start with: docker compose --profile ollama up
 
 volumes:
-  db_data:
-  log_data:
-  ollama_data:
+  db_data:      # persists SQLite across restarts
+  log_data:     # shared log directory (parser reads, you drop files here)
+  ollama_data:  # Ollama model cache (only used with --profile ollama)

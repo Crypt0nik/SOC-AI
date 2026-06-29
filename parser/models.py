@@ -22,3 +22,4 @@ class Event:
     action: str
     raw_log: str
     source_type: str
+    id: int | None = None  # set after DB insertion; required for engine evaluation
