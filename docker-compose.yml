@@ -22,8 +22,8 @@ services:
   # ── Parser — log ingestion ──────────────────────────────────
   parser:
     build:
-      context: ./parser
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: parser/Dockerfile
     environment:
       <<: *common-env
     volumes:
@@ -42,8 +42,8 @@ services:
   # ── Engine — Sigma detection ────────────────────────────────
   engine:
     build:
-      context: ./engine
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: engine/Dockerfile
     environment:
       <<: *common-env
     volumes:
@@ -57,8 +57,8 @@ services:
   # ── LLM Agent — triage ─────────────────────────────────────
   llm_agent:
     build:
-      context: ./llm_agent
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: llm_agent/Dockerfile
     environment:
       <<: *common-env
       LLM_BACKEND: ${LLM_BACKEND:-ollama}
@@ -78,8 +78,8 @@ services:
   # ── API — FastAPI backend ───────────────────────────────────
   api:
     build:
-      context: ./api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: api/Dockerfile
     ports:
       - "${API_PORT:-8000}:8000"
     environment:
@@ -100,8 +100,8 @@ services:
   # ── Dashboard — React frontend ──────────────────────────────
   dashboard:
     build:
-      context: ./dashboard
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: dashboard/Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
     ports:

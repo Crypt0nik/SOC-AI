@@ -1,13 +1,15 @@
 """Shared pytest fixtures for SOC-AI tests."""
 
-import os
 import sqlite3
-import tempfile
+import sys
 from pathlib import Path
 
 import pytest
 
-# Point all modules at a temporary in-memory (or temp-file) database during tests
+# Ensure repo root is importable regardless of how pytest is invoked
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+
 @pytest.fixture
 def tmp_db(monkeypatch, tmp_path):
     """Create a fresh temporary SQLite database for each test.
@@ -21,7 +23,6 @@ def tmp_db(monkeypatch, tmp_path):
     db_file = tmp_path / "test_soc.db"
     monkeypatch.setenv("DB_PATH", str(db_file))
 
-    # Initialise schema
     schema_path = Path(__file__).parent.parent / "db" / "schema.sql"
     conn = sqlite3.connect(str(db_file))
     conn.row_factory = sqlite3.Row
@@ -36,5 +37,4 @@ def tmp_db(monkeypatch, tmp_path):
             except sqlite3.OperationalError:
                 pass
     conn.commit()
-    conn.close()
-    return db_file
+    return db_file, conn

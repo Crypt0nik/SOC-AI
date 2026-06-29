@@ -6,16 +6,15 @@ LABEL org.opencontainers.image.licenses="MIT"
 
 WORKDIR /app
 
-# Install dependencies first (cached layer)
-COPY requirements.txt .
+# Install Python dependencies
+COPY parser/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy module source
-COPY . .
-# Copy shared db package
-COPY ../db /app/db
+# Copy shared db package and parser module
+COPY db/ ./db/
+COPY parser/ ./parser/
 
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-CMD ["python", "parser.py"]
+CMD ["python", "-m", "parser.parser"]
