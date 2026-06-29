@@ -10,6 +10,7 @@ COPY engine/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY db/ ./db/
+COPY parser/ ./parser/
 COPY engine/ ./engine/
 
 ENV PYTHONPATH=/app
