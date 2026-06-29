@@ -21,7 +21,7 @@ services:
     environment:
       <<: *common-env
     volumes:
-      - log_data:/logs
+      - ./sample_logs:/logs
       - db_data:/data
     networks:
       - soc_net
@@ -125,5 +125,4 @@ services:
 
 volumes:
   db_data:      # persists SQLite across restarts
-  log_data:     # shared log directory (parser reads, you drop files here)
   ollama_data:  # Ollama model cache (only used with --profile ollama)
