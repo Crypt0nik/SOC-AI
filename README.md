@@ -58,8 +58,7 @@ graph LR
 
 ## Screenshot
 
-<!-- TODO: ajouter screenshot dashboard après P6 -->
-*Screenshot du dashboard à venir.*
+<img width="2304" height="1424" alt="image" src="https://github.com/user-attachments/assets/561e3af1-867a-4f6e-b6cf-36b26cec3e60" />
 
 <!-- TODO: ajouter GIF démo triage LLM -->
 *GIF démo du triage LLM à venir.*
