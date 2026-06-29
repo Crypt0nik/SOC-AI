@@ -1,0 +1,34 @@
+title: SQL Injection Attempt in HTTP Request
+id: web-001-sigma
+status: stable
+description: >
+  Detects common SQL injection patterns in HTTP request URLs logged
+  by Apache or Nginx. Covers UNION-based, boolean-based, and
+  procedure-based injection techniques (MITRE ATT&CK T1190).
+author: SOC-AI
+date: 2026/06/29
+logsource:
+  category: webserver
+detection:
+  selection:
+    raw_log|contains:
+      - "' OR '"
+      - "UNION SELECT"
+      - "UNION ALL SELECT"
+      - "SELECT * FROM"
+      - "DROP TABLE"
+      - "INSERT INTO"
+      - "OR 1=1"
+      - "xp_cmdshell"
+      - "information_schema"
+  condition: selection
+level: high
+falsepositives:
+  - Web application security scanners (authorized)
+  - Penetration testing activity
+  - CMS editors with SQL content
+soc_ai:
+  rule_id: WEB-001
+  severity: HIGH
+  source_types:
+    - web

@@ -1,0 +1,30 @@
+title: Path Traversal Attempt
+id: web-002-sigma
+status: stable
+description: >
+  Detects directory traversal attack patterns in HTTP request URLs,
+  including plain and URL-encoded variants of the "../" sequence.
+  Matches MITRE ATT&CK T1083 (File and Directory Discovery via web).
+author: SOC-AI
+date: 2026/06/29
+logsource:
+  category: webserver
+detection:
+  selection:
+    raw_log|contains:
+      - '../'
+      - '%2e%2e%2f'
+      - '%2e%2e/'
+      - '..%2f'
+      - '..%5c'
+      - '%2e%2e%5c'
+  condition: selection
+level: medium
+falsepositives:
+  - Legitimate relative URL references in API responses
+  - Documentation sites referencing parent paths
+soc_ai:
+  rule_id: WEB-002
+  severity: MEDIUM
+  source_types:
+    - web

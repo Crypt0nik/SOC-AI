@@ -1,0 +1,30 @@
+title: SAM Registry Hive Access (Event 4657)
+id: win-003-sigma
+status: stable
+description: >
+  Detects access to or modification of registry keys under the SAM hive
+  via Windows Security Event 4657. This is a strong indicator of credential
+  dumping attacks targeting local account password hashes.
+  Maps to MITRE ATT&CK T1003.002 (OS Credential Dumping: Security Account Manager).
+author: SOC-AI
+date: 2026/06/29
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    action: registry_value_modified
+    raw_log|contains:
+      - SAM
+      - '\SAM\'
+      - 'SECURITY\SAM'
+  condition: selection
+level: critical
+falsepositives:
+  - Legitimate Windows OS processes accessing the SAM hive during boot
+  - Authorized security auditing and backup tools (e.g. Windows Backup)
+soc_ai:
+  rule_id: WIN-003
+  severity: CRITICAL
+  source_types:
+    - windows

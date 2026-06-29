@@ -1,0 +1,26 @@
+title: Windows Privilege Escalation — Special Privileges Assigned (Event 4672)
+id: win-001-sigma
+status: stable
+description: >
+  Detects assignment of special privileges (e.g. SeDebugPrivilege,
+  SeImpersonatePrivilege) to a new logon session via Windows Security
+  Event 4672. A key indicator of privilege escalation.
+  Maps to MITRE ATT&CK T1078 (Valid Accounts) and T1134 (Access Token Manipulation).
+author: SOC-AI
+date: 2026/06/29
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    action: privilege_assigned
+  condition: selection
+level: critical
+falsepositives:
+  - Routine logon by administrators with elevated privileges
+  - Service account startups with required system privileges
+soc_ai:
+  rule_id: WIN-001
+  severity: CRITICAL
+  source_types:
+    - windows

@@ -1,0 +1,25 @@
+title: Direct SSH Root Login
+id: ssh-002-sigma
+status: stable
+description: >
+  Detects a successful direct SSH authentication as root.
+  Direct root logins violate the principle of least privilege and are a
+  common post-compromise indicator (MITRE ATT&CK T1078 — Valid Accounts).
+author: SOC-AI
+date: 2026/06/29
+logsource:
+  category: authentication
+  product: linux
+detection:
+  selection:
+    action: ssh_accepted_auth
+    user: root
+  condition: selection
+level: high
+falsepositives:
+  - Legacy systems or embedded devices requiring direct root SSH
+soc_ai:
+  rule_id: SSH-002
+  severity: HIGH
+  source_types:
+    - ssh

@@ -1,0 +1,37 @@
+title: HTTP Security Scanner Detected
+id: web-003-sigma
+status: stable
+description: >
+  Detects HTTP requests containing well-known web security scanner or
+  attack tool signatures in User-Agent strings or URL paths.
+  Indicates active reconnaissance (MITRE ATT&CK T1595).
+author: SOC-AI
+date: 2026/06/29
+logsource:
+  category: webserver
+detection:
+  selection:
+    raw_log|contains:
+      - sqlmap
+      - nikto
+      - masscan
+      - dirbuster
+      - gobuster
+      - wfuzz
+      - burpsuite
+      - zgrab
+      - nuclei
+      - nessus
+      - openvas
+      - acunetix
+      - ZAP
+  condition: selection
+level: low
+falsepositives:
+  - Authorized internal security team running vulnerability scans
+  - Bug bounty hunters with explicit written permission
+soc_ai:
+  rule_id: WEB-003
+  severity: LOW
+  source_types:
+    - web

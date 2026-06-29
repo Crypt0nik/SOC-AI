@@ -1,0 +1,25 @@
+title: Windows User Account Created (Event 4720)
+id: win-002-sigma
+status: stable
+description: >
+  Detects creation of a new local Windows user account via Security
+  Event 4720. Unexpected account creation may indicate privilege
+  escalation or attacker persistence (MITRE ATT&CK T1136 — Create Account).
+author: SOC-AI
+date: 2026/06/29
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    action: user_account_created
+  condition: selection
+level: medium
+falsepositives:
+  - Legitimate IT provisioning and onboarding scripts
+  - Scheduled maintenance creating service accounts
+soc_ai:
+  rule_id: WIN-002
+  severity: MEDIUM
+  source_types:
+    - windows

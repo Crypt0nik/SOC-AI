@@ -1,0 +1,29 @@
+title: Port Scan Detected
+id: net-001-sigma
+status: stable
+description: >
+  Detects port scanning activity — more than 20 connection attempts from
+  the same source IP within 5 seconds, ingested as generic JSON network
+  events. Indicates active network reconnaissance (MITRE ATT&CK T1046).
+author: SOC-AI
+date: 2026/06/29
+logsource:
+  category: network
+detection:
+  selection:
+    action: net_connection
+  condition: selection
+level: high
+falsepositives:
+  - Internal network monitoring tools (e.g. Nagios, Zabbix)
+  - Authorized internal vulnerability scanners
+  - Load balancer health checks with high frequency
+soc_ai:
+  rule_id: NET-001
+  severity: HIGH
+  source_types:
+    - json
+  aggregation:
+    count_by: source_ip
+    timeframe_seconds: 5
+    threshold: 20
