@@ -59,7 +59,7 @@ graph LR
 ## Screenshot
 
 
-<img width="1895" height="1024" alt="image" src="https://github.com/user-attachments/assets/bc2d9591-8f29-41bb-9ffb-248b84bf8670" />
+<img width="1899" height="1021" alt="image" src="https://github.com/user-attachments/assets/71aa4b72-0e48-48e3-9bd1-1b48ec540771" />
 
 <!-- TODO: ajouter GIF démo triage LLM -->
 *GIF démo du triage LLM à venir.*
