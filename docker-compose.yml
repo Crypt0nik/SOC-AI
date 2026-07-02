@@ -78,6 +78,8 @@ services:
       - "${API_PORT:-8000}:8000"
     environment:
       <<: *common-env
+      PLAN: ${PLAN:-community}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
     volumes:
       - db_data:/data
     networks:
@@ -105,6 +107,29 @@ services:
     restart: unless-stopped
     depends_on:
       - api
+
+  # ── Notifications — Slack/Teams webhooks [Pro] ─────────────
+  # Requires: PLAN=pro + SLACK_WEBHOOK_URL or TEAMS_WEBHOOK_URL in .env
+  # Start with: docker compose --profile pro up
+  notifications:
+    profiles: [pro]
+    build:
+      context: .
+      dockerfile: notifications/Dockerfile
+    environment:
+      DB_PATH: ${DB_PATH:-/data/soc.db}
+      PLAN: ${PLAN:-community}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      TEAMS_WEBHOOK_URL: ${TEAMS_WEBHOOK_URL:-}
+      NOTIFY_MIN_SEVERITY: ${NOTIFY_MIN_SEVERITY:-HIGH}
+      POLL_INTERVAL: ${POLL_INTERVAL:-10}
+    volumes:
+      - db_data:/data
+    networks:
+      - soc_net
+    depends_on:
+      - api
+    restart: unless-stopped
 
   # ── Ollama — optional local LLM (offline mode) ─────────────
   # To enable: set LLM_BACKEND=ollama in .env

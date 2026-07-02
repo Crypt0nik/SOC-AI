@@ -30,3 +30,9 @@ export const deleteAllAlerts = () =>
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.json();
   });
+
+// ── Pro endpoints ────────────────────────────────────────────
+export const fetchMitreStats = () => apiFetch('/pro/mitre-stats');
+
+export const fetchRiskScores = (limit = 10) =>
+  apiFetch(`/pro/risk-scores?limit=${limit}`);

@@ -59,6 +59,17 @@ CREATE TABLE IF NOT EXISTS triage (
 CREATE INDEX IF NOT EXISTS idx_triage_alert_id ON triage(alert_id);
 CREATE INDEX IF NOT EXISTS idx_triage_severity ON triage(severity);
 
+-- ── notifications ────────────────────────────────────────────
+-- Tracks alerts dispatched to Slack/Teams (Pro feature).
+CREATE TABLE IF NOT EXISTS notifications (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    alert_id  INTEGER UNIQUE NOT NULL REFERENCES alerts(id) ON DELETE CASCADE,
+    channel   TEXT    NOT NULL,                 -- slack | teams | none
+    sent_at   TEXT    NOT NULL,                 -- ISO-8601 UTC
+    status    TEXT    NOT NULL                  -- sent | error
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_alert_id ON notifications(alert_id);
+
 -- ── pii_mapping ──────────────────────────────────────────────
 -- Reversible PII tokenisation map (local only, never sent to cloud LLM).
 -- Tokens: IP_1, USER_1, EMAIL_1 … scoped per alert.

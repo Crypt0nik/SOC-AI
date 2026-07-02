@@ -2,9 +2,12 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import AlertDetail from './components/AlertDetail.jsx';
 import AlertList from './components/AlertList.jsx';
 import ExportButton from './components/ExportButton.jsx';
+import MitreHeatmap from './components/MitreHeatmap.jsx';
+import RiskScores from './components/RiskScores.jsx';
 import SeverityFilter from './components/SeverityFilter.jsx';
 import StatsBar from './components/StatsBar.jsx';
 import { ThemeContext, DARK, LIGHT } from './theme.js';
+import { PlanProvider, usePlan } from './plan.jsx';
 import { deleteAllAlerts } from './api.js';
 
 const SORT_OPTIONS = [
@@ -29,9 +32,27 @@ function timeAgo(date) {
   return `${Math.floor(diff / 60)}m ago`;
 }
 
-export default function App() {
+function PlanBadge({ T }) {
+  const { plan, isPro, isEnterprise } = usePlan();
+  const color = isEnterprise ? '#7c3aed' : isPro ? '#FF6600' : T.textMuted;
+  const label = isEnterprise ? '🏢 Enterprise' : isPro ? '⚡ Pro' : 'Community';
+  return (
+    <span style={{
+      fontSize: '11px', fontWeight: isPro || isEnterprise ? 700 : 400,
+      color, border: `1px solid ${isPro || isEnterprise ? color : T.border}`,
+      borderRadius: '5px', padding: '2px 8px',
+      flexShrink: 0,
+    }} data-plan={plan}>
+      {label}
+    </span>
+  );
+}
+
+function AppInner() {
+  const { isPro } = usePlan();
   const [isDark, setIsDark] = useState(false);
   const T = isDark ? DARK : LIGHT;
+  const [view, setView] = useState('alerts'); // 'alerts' | 'intelligence'
 
   const [severity, setSeverity] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
@@ -154,8 +175,8 @@ export default function App() {
               </svg>
             </div>
             <span style={{ fontWeight: 700, fontSize: '14px', letterSpacing: '-0.02em', color: T.text }}>SOC-AI</span>
-            <span style={{ fontSize: '11px', color: T.textMuted, borderLeft: `1px solid ${T.border}`, paddingLeft: '8px' }}>Community</span>
           </div>
+          <PlanBadge T={T} />
 
           <div style={{ width: '1px', height: '18px', backgroundColor: T.border, flexShrink: 0 }} />
 
@@ -194,6 +215,24 @@ export default function App() {
                 </svg>
               </button>
             )}
+          </div>
+
+          {/* View toggle */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2px', backgroundColor: T.surface, border: `1px solid ${T.border}`, borderRadius: '7px', padding: '2px' }}>
+            {[
+              { key: 'alerts', label: '🔔 Alerts' },
+              { key: 'intelligence', label: `🧠 Intel${!isPro ? ' ⚡' : ''}` },
+            ].map(({ key, label }) => (
+              <button key={key} onClick={() => setView(key)} style={{
+                padding: '3px 10px', borderRadius: '5px', fontSize: '12px', fontWeight: 500,
+                border: 'none', cursor: 'pointer', transition: 'all 0.1s',
+                backgroundColor: view === key ? T.bg : 'transparent',
+                color: view === key ? T.text : T.textMuted,
+                boxShadow: view === key ? `0 1px 3px rgba(0,0,0,0.1)` : 'none',
+              }}>
+                {label}
+              </button>
+            ))}
           </div>
 
           <div style={{ flex: 1 }} />
@@ -423,18 +462,40 @@ export default function App() {
 
         {/* ── Main ── */}
         <main style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-          <AlertList
-            key={severity ?? 'all'}
-            severity={severity}
-            refreshKey={refreshKey}
-            search={search}
-            sortBy={sortBy}
-            statusFilter={statusFilter}
-            onSelect={setSelectedId}
-            selectedId={selectedId}
-            onAlertsLoaded={handleAlertsLoaded}
-            onDeleted={(id) => { if (selectedId === id) setSelectedId(null); }}
-          />
+          {view === 'alerts' ? (
+            <AlertList
+              key={severity ?? 'all'}
+              severity={severity}
+              refreshKey={refreshKey}
+              search={search}
+              sortBy={sortBy}
+              statusFilter={statusFilter}
+              onSelect={setSelectedId}
+              selectedId={selectedId}
+              onAlertsLoaded={handleAlertsLoaded}
+              onDeleted={(id) => { if (selectedId === id) setSelectedId(null); }}
+            />
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '16px', alignItems: 'start' }}>
+              {/* MITRE Heatmap */}
+              <div style={{ backgroundColor: T.surface, border: `1px solid ${T.border}`, borderRadius: '10px', padding: '16px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: T.text, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>🗺️</span> MITRE ATT&CK Coverage
+                  {!isPro && <span style={{ fontSize: '10px', color: '#FF6600', border: '1px solid #FF6600', borderRadius: '4px', padding: '1px 5px', fontWeight: 700 }}>⚡ PRO</span>}
+                </div>
+                <MitreHeatmap />
+              </div>
+
+              {/* Risk Scores */}
+              <div style={{ backgroundColor: T.surface, border: `1px solid ${T.border}`, borderRadius: '10px', padding: '16px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: T.text, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>🎯</span> Top Risk IPs
+                  {!isPro && <span style={{ fontSize: '10px', color: '#FF6600', border: '1px solid #FF6600', borderRadius: '4px', padding: '1px 5px', fontWeight: 700 }}>⚡ PRO</span>}
+                </div>
+                <RiskScores onIpClick={(ip) => { setSearch(ip); setView('alerts'); }} />
+              </div>
+            </div>
+          )}
         </main>
 
         {/* ── Detail panel ── */}
@@ -449,5 +510,13 @@ export default function App() {
         )}
       </div>
     </ThemeContext.Provider>
+  );
+}
+
+export default function App() {
+  return (
+    <PlanProvider>
+      <AppInner />
+    </PlanProvider>
   );
 }

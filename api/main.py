@@ -1,11 +1,16 @@
 """SOC-AI FastAPI backend.
 
 Exposes a REST API consumed by the dashboard:
-- GET /health            → service + DB status
-- GET /alerts            → paginated alert list (joined with triage)
-- GET /alerts/{id}       → alert detail with raw log + full triage
-- GET /stats             → per-severity counts for the last 24 h
-- GET /export            → full JSON download (optional severity filter)
+- GET  /health              → service + DB status
+- GET  /plan                → current plan + enabled features
+- GET  /alerts              → paginated alert list (joined with triage)
+- GET  /alerts/{id}         → alert detail with raw log + full triage
+- DELETE /alerts            → clear all alerts (for testing)
+- DELETE /alerts/{id}       → delete a single alert
+- GET  /stats               → per-severity counts for the last 24 h
+- GET  /export              → full JSON download (optional severity filter)
+- GET  /pro/mitre-stats     → MITRE technique frequency [Pro]
+- GET  /pro/risk-scores     → top IPs by cumulative risk score [Pro]
 """
 
 import json
@@ -14,10 +19,11 @@ import os
 import sqlite3
 from collections.abc import Generator
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
+from api import config as cfg
 from api.db import (
     delete_alert,
     delete_all_alerts,
@@ -45,22 +51,23 @@ logger = logging.getLogger("soc_ai.api")
 
 app = FastAPI(
     title="SOC-AI API",
-    version="1.0.0",
-    description="Community Edition — lightweight LLM-powered SOC triage API",
+    version="1.5.0",
+    description="Community + Pro Edition — lightweight LLM-powered SOC triage API",
 )
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["GET", "DELETE"],
-    allow_headers=["*"],
+    allow_headers=["*", "X-Admin-Token"],
 )
 
 _VALID_SEVERITIES = {"CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"}
 _SEVERITY_PATTERN = "^(CRITICAL|HIGH|MEDIUM|LOW|INFO)$"
+_SEV_WEIGHT = {"CRITICAL": 10, "HIGH": 5, "MEDIUM": 2, "LOW": 1, "INFO": 0}
 
 
-# ── Dependency ────────────────────────────────────────────────────────────────
+# ── Dependencies ──────────────────────────────────────────────────────────────
 
 
 def get_db() -> Generator[sqlite3.Connection, None, None]:
@@ -70,6 +77,25 @@ def get_db() -> Generator[sqlite3.Connection, None, None]:
         yield conn
     finally:
         conn.close()
+
+
+def require_pro(x_admin_token: str | None = Header(default=None)) -> None:
+    """Dependency that enforces Pro plan (or valid admin token).
+
+    Args:
+        x_admin_token: Optional ``X-Admin-Token`` header for admin bypass.
+
+    Raises:
+        HTTPException: 403 when neither Pro plan nor valid admin token is present.
+    """
+    if cfg.is_pro():
+        return
+    if x_admin_token and cfg.ADMIN_TOKEN and x_admin_token == cfg.ADMIN_TOKEN:
+        return
+    raise HTTPException(
+        status_code=403,
+        detail="This endpoint requires a Pro or Enterprise plan.",
+    )
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -106,7 +132,7 @@ def _build_triage_detail(row: dict) -> TriageDetail | None:
     )
 
 
-# ── Routes ────────────────────────────────────────────────────────────────────
+# ── Community routes ──────────────────────────────────────────────────────────
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -118,6 +144,21 @@ def health(db: sqlite3.Connection = Depends(get_db)) -> HealthResponse:
     except Exception:  # noqa: BLE001
         db_status = "error"
     return HealthResponse(status="ok", db=db_status)
+
+
+@app.get("/plan")
+def plan_info() -> dict:
+    """Return the current plan and list of enabled Pro/Enterprise features.
+
+    Returns:
+        Dict with plan name, feature list, and boolean flags.
+    """
+    return {
+        "plan": cfg.PLAN,
+        "features": cfg.enabled_features(),
+        "isPro": cfg.is_pro(),
+        "isEnterprise": cfg.is_enterprise(),
+    }
 
 
 @app.get("/alerts", response_model=AlertListResponse)
@@ -242,7 +283,6 @@ def stats(db: sqlite3.Connection = Depends(get_db)) -> StatsResponse:
         Stats with window_hours, counts dict, and total.
     """
     counts = fetch_stats(db, window_hours=24)
-    # Ensure all severity levels are present (zero if none)
     full_counts = {sev: counts.get(sev, 0) for sev in _VALID_SEVERITIES}
     return StatsResponse(
         window_hours=24,
@@ -274,6 +314,93 @@ def export_alerts(
         media_type="application/json",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+
+# ── Pro routes ────────────────────────────────────────────────────────────────
+
+
+@app.get("/pro/mitre-stats")
+def mitre_stats(
+    db: sqlite3.Connection = Depends(get_db),
+    _: None = Depends(require_pro),
+) -> dict:
+    """Return MITRE technique frequency for the ATT&CK heatmap.
+
+    Args:
+        db: Injected SQLite connection.
+
+    Returns:
+        Dict with list of ``{id, count}`` technique objects.
+    """
+    try:
+        rows = db.execute(
+            "SELECT mitre_id, COUNT(*) AS cnt "
+            "FROM triage WHERE mitre_id IS NOT NULL "
+            "GROUP BY mitre_id ORDER BY cnt DESC"
+        ).fetchall()
+    except sqlite3.Error as exc:
+        logger.error("mitre_stats failed: %s", exc)
+        rows = []
+    return {"techniques": [{"id": r["mitre_id"], "count": r["cnt"]} for r in rows]}
+
+
+@app.get("/pro/risk-scores")
+def risk_scores(
+    limit: int = Query(10, ge=1, le=50),
+    db: sqlite3.Connection = Depends(get_db),
+    _: None = Depends(require_pro),
+) -> dict:
+    """Return top source IPs ranked by cumulative risk score.
+
+    Score = SUM(severity_weight × matched_count) per source_ip.
+    Weights: CRITICAL=10, HIGH=5, MEDIUM=2, LOW=1, INFO=0.
+
+    Args:
+        limit: Maximum number of IPs to return (1–50).
+        db: Injected SQLite connection.
+
+    Returns:
+        Dict with list of ``{source_ip, score, alert_count, top_severity}`` objects.
+    """
+    try:
+        rows = db.execute(
+            "SELECT a.source_ip, "
+            "SUM(CASE COALESCE(t.severity, a.severity) "
+            "    WHEN 'CRITICAL' THEN 10 * a.matched_count "
+            "    WHEN 'HIGH'     THEN  5 * a.matched_count "
+            "    WHEN 'MEDIUM'   THEN  2 * a.matched_count "
+            "    WHEN 'LOW'      THEN  1 * a.matched_count "
+            "    ELSE 0 END) AS score, "
+            "COUNT(*) AS alert_count, "
+            "MAX(CASE COALESCE(t.severity, a.severity) "
+            "    WHEN 'CRITICAL' THEN 5 "
+            "    WHEN 'HIGH'     THEN 4 "
+            "    WHEN 'MEDIUM'   THEN 3 "
+            "    WHEN 'LOW'      THEN 2 "
+            "    ELSE 1 END) AS sev_rank, "
+            "COALESCE(t.severity, a.severity) AS top_sev "
+            "FROM alerts a LEFT JOIN triage t ON t.alert_id = a.id "
+            "WHERE a.source_ip IS NOT NULL "
+            "GROUP BY a.source_ip "
+            "ORDER BY score DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    except sqlite3.Error as exc:
+        logger.error("risk_scores failed: %s", exc)
+        rows = []
+
+    sev_names = {5: "CRITICAL", 4: "HIGH", 3: "MEDIUM", 2: "LOW", 1: "INFO"}
+    return {
+        "scores": [
+            {
+                "source_ip": r["source_ip"],
+                "score": r["score"] or 0,
+                "alert_count": r["alert_count"],
+                "top_severity": sev_names.get(r["sev_rank"], "INFO"),
+            }
+            for r in rows
+        ]
+    }
 
 
 if __name__ == "__main__":
