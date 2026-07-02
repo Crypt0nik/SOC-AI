@@ -35,15 +35,21 @@ function timeAgo(date) {
 function PlanBadge({ T }) {
   const { plan, isPro, isEnterprise } = usePlan();
   const color = isEnterprise ? '#7c3aed' : isPro ? '#FF6600' : T.textMuted;
-  const label = isEnterprise ? '🏢 Enterprise' : isPro ? '⚡ Pro' : 'Community';
   return (
     <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '5px',
       fontSize: '11px', fontWeight: isPro || isEnterprise ? 700 : 400,
       color, border: `1px solid ${isPro || isEnterprise ? color : T.border}`,
-      borderRadius: '5px', padding: '2px 8px',
-      flexShrink: 0,
+      borderRadius: '5px', padding: '2px 8px', flexShrink: 0,
     }} data-plan={plan}>
-      {label}
+      {isEnterprise ? (
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+      ) : isPro ? (
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      ) : (
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      )}
+      {isEnterprise ? 'Enterprise' : isPro ? 'Pro' : 'Community'}
     </span>
   );
 }
@@ -220,17 +226,28 @@ function AppInner() {
           {/* View toggle */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '2px', backgroundColor: T.surface, border: `1px solid ${T.border}`, borderRadius: '7px', padding: '2px' }}>
             {[
-              { key: 'alerts', label: '🔔 Alerts' },
-              { key: 'intelligence', label: `🧠 Intel${!isPro ? ' ⚡' : ''}` },
-            ].map(({ key, label }) => (
+              {
+                key: 'alerts',
+                icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
+                label: 'Alerts',
+              },
+              {
+                key: 'intelligence',
+                icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="3" width="20" height="4" rx="1"/><rect x="2" y="10" width="20" height="4" rx="1"/><rect x="2" y="17" width="20" height="4" rx="1"/></svg>,
+                label: 'Intelligence',
+                pro: !isPro,
+              },
+            ].map(({ key, icon, label, pro }) => (
               <button key={key} onClick={() => setView(key)} style={{
+                display: 'flex', alignItems: 'center', gap: '5px',
                 padding: '3px 10px', borderRadius: '5px', fontSize: '12px', fontWeight: 500,
                 border: 'none', cursor: 'pointer', transition: 'all 0.1s',
                 backgroundColor: view === key ? T.bg : 'transparent',
                 color: view === key ? T.text : T.textMuted,
                 boxShadow: view === key ? `0 1px 3px rgba(0,0,0,0.1)` : 'none',
               }}>
-                {label}
+                {icon}{label}
+                {pro && <span style={{ fontSize: '9px', fontWeight: 700, color: '#FF6600', border: '1px solid #FF6600', borderRadius: '3px', padding: '0 4px', lineHeight: '14px' }}>PRO</span>}
               </button>
             ))}
           </div>
@@ -480,8 +497,9 @@ function AppInner() {
               {/* MITRE Heatmap */}
               <div style={{ backgroundColor: T.surface, border: `1px solid ${T.border}`, borderRadius: '10px', padding: '16px' }}>
                 <div style={{ fontSize: '13px', fontWeight: 600, color: T.text, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>🗺️</span> MITRE ATT&CK Coverage
-                  {!isPro && <span style={{ fontSize: '10px', color: '#FF6600', border: '1px solid #FF6600', borderRadius: '4px', padding: '1px 5px', fontWeight: 700 }}>⚡ PRO</span>}
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={T.textMuted} strokeWidth="2" strokeLinecap="round"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="M13 13l6 6"/></svg>
+                  MITRE ATT&CK Coverage
+                  {!isPro && <span style={{ fontSize: '9px', fontWeight: 700, color: '#FF6600', border: '1px solid #FF6600', borderRadius: '3px', padding: '0 5px', lineHeight: '16px', marginLeft: '2px' }}>PRO</span>}
                 </div>
                 <MitreHeatmap />
               </div>
@@ -489,8 +507,9 @@ function AppInner() {
               {/* Risk Scores */}
               <div style={{ backgroundColor: T.surface, border: `1px solid ${T.border}`, borderRadius: '10px', padding: '16px' }}>
                 <div style={{ fontSize: '13px', fontWeight: 600, color: T.text, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>🎯</span> Top Risk IPs
-                  {!isPro && <span style={{ fontSize: '10px', color: '#FF6600', border: '1px solid #FF6600', borderRadius: '4px', padding: '1px 5px', fontWeight: 700 }}>⚡ PRO</span>}
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={T.textMuted} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                  Top Risk IPs
+                  {!isPro && <span style={{ fontSize: '9px', fontWeight: 700, color: '#FF6600', border: '1px solid #FF6600', borderRadius: '3px', padding: '0 5px', lineHeight: '16px', marginLeft: '2px' }}>PRO</span>}
                 </div>
                 <RiskScores onIpClick={(ip) => { setSearch(ip); setView('alerts'); }} />
               </div>

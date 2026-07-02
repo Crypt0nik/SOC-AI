@@ -17,31 +17,45 @@ export default function ProGate({ feature, description, children }) {
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         backgroundColor: T.overlay,
         backdropFilter: 'blur(4px)',
-        gap: '6px',
+        gap: '8px',
       }}>
-        <span style={{ fontSize: '24px', lineHeight: 1 }}>⚡</span>
-        <span style={{ color: '#FF6600', fontWeight: 700, fontSize: '13px' }}>Pro Feature</span>
-        {description && (
-          <span style={{ color: T.textMuted, fontSize: '12px', textAlign: 'center', maxWidth: '220px', lineHeight: 1.4 }}>
-            {description}
-          </span>
-        )}
+        {/* Lock icon */}
+        <div style={{
+          width: '36px', height: '36px', borderRadius: '8px',
+          backgroundColor: '#FF660015', border: '1px solid #FF660040',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF6600" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ color: T.text, fontWeight: 600, fontSize: '13px', marginBottom: '3px' }}>Pro Feature</div>
+          {description && (
+            <div style={{ color: T.textMuted, fontSize: '12px', maxWidth: '220px', lineHeight: 1.4 }}>
+              {description}
+            </div>
+          )}
+        </div>
         <a
           href="https://github.com/Crypt0nik/SOC-AI"
           target="_blank"
           rel="noopener noreferrer"
           style={{
-            marginTop: '4px',
-            fontSize: '11px',
+            fontSize: '11px', fontWeight: 600,
             color: '#FF6600',
             border: '1px solid #FF6600',
             borderRadius: '5px',
-            padding: '3px 10px',
+            padding: '4px 12px',
             textDecoration: 'none',
-            opacity: 0.85,
+            transition: 'opacity 0.1s',
+            opacity: 0.9,
           }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.9'; }}
         >
-          Upgrade to Pro →
+          Upgrade to Pro
         </a>
       </div>
     </div>
