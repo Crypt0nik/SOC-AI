@@ -58,6 +58,8 @@ services:
       LLM_BACKEND: ${LLM_BACKEND:-ollama}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-sonnet-4-6}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      CODEX_MODEL: ${CODEX_MODEL:-gpt-5.4-mini}
       OLLAMA_HOST: ${OLLAMA_HOST:-http://ollama:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1}
       ANONYMIZE_PII: ${ANONYMIZE_PII:-true}

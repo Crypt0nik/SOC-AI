@@ -48,7 +48,7 @@ graph LR
     B -->|events table| C[(SQLite<br/>WAL)]
     C -->|poll| D[Sigma Engine<br/>10 règles]
     D -->|alerts table| C
-    C -->|poll| E[LLM Agent<br/>Claude ✦ Ollama]
+    C -->|poll| E[LLM Agent<br/>Claude ✦ Codex ✦ Ollama]
     E -->|triage table| C
     C -->|READ| F[FastAPI<br/>:8000]
     F -->|REST| G[Dashboard React<br/>:3000]
@@ -71,7 +71,7 @@ graph LR
 - ✅ Ingestion temps réel : SSH `auth.log`, Apache/Nginx, Windows Event Log XML, JSON générique
 - ✅ 10 règles Sigma (SSH-001→003, WEB-001→003, WIN-001→003, NET-001)
 - ✅ Triage LLM : `severity`, `attack_type` MITRE ATT&CK, `confidence`, `summary` FR, `recommendation` FR
-- ✅ Dual backend : **Claude API** (cloud) + **Ollama** (local offline)
+- ✅ Backends LLM : **Claude API**, **OpenAI Codex/Responses API**, **Ollama** local offline
 - ✅ Anonymisation PII réversible avant envoi LLM cloud
 - ✅ Dashboard React : liste paginée, filtres, vue détail, codes couleur criticité
 - ✅ API REST : `/alerts`, `/stats`, `/export`
@@ -121,8 +121,10 @@ Toutes les options sont dans `.env` (copiez `.env.example`) :
 
 | Variable | Défaut | Description |
 |----------|--------|-------------|
-| `LLM_BACKEND` | `ollama` | `claude` ou `ollama` |
+| `LLM_BACKEND` | `ollama` | `claude`, `codex` ou `ollama` |
 | `ANTHROPIC_API_KEY` | — | Clé API Anthropic (si `LLM_BACKEND=claude`) |
+| `OPENAI_API_KEY` | — | Clé API OpenAI (si `LLM_BACKEND=codex`) |
+| `CODEX_MODEL` | `gpt-5.4-mini` | Modèle OpenAI utilisé par le backend Codex |
 | `ANONYMIZE_PII` | `true` | Anonymise IP/user/email avant LLM cloud |
 | `RETENTION_DAYS` | `90` | Rétention des données en jours |
 | `OLLAMA_MODEL` | `llama3.1` | Modèle Ollama |

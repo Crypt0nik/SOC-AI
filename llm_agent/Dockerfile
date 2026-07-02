@@ -1,7 +1,7 @@
 FROM python:3.11-slim
 
 LABEL org.opencontainers.image.title="soc-ai-llm-agent"
-LABEL org.opencontainers.image.description="SOC-AI LLM triage agent (Claude + Ollama backends)"
+LABEL org.opencontainers.image.description="SOC-AI LLM triage agent (Claude + Codex + Ollama backends)"
 LABEL org.opencontainers.image.licenses="MIT"
 
 WORKDIR /app

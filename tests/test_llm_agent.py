@@ -1,10 +1,12 @@
 """Tests for the LLM triage agent (backend mocked)."""
 
 import json
+import sys
+import types
 from unittest.mock import MagicMock
 
 from engine.db import insert_alert
-from llm_agent.agent import process_alert
+from llm_agent.agent import get_backend, process_alert
 from llm_agent.backends.base import LLMBackend
 from llm_agent.db import fetch_untriaged_alerts
 from parser.db import insert_event
@@ -170,3 +172,27 @@ def test_no_triage_row_on_error(tmp_db):
         "SELECT COUNT(*) FROM triage WHERE alert_id=?", (row["id"],)
     ).fetchone()[0]
     assert count == 0
+
+
+def test_get_backend_selects_codex(monkeypatch):
+    class FakeOpenAI:
+        def __init__(self, api_key):
+            self.api_key = api_key
+
+    fake_openai = types.SimpleNamespace(OpenAI=FakeOpenAI)
+    monkeypatch.setitem(sys.modules, "openai", fake_openai)
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("CODEX_MODEL", "test-model")
+
+    backend = get_backend({"LLM_BACKEND": "codex"})
+
+    assert backend.name == "codex"
+
+
+def test_unknown_backend_mentions_codex():
+    try:
+        get_backend({"LLM_BACKEND": "unknown"})
+    except ValueError as exc:
+        assert "codex" in str(exc)
+    else:
+        raise AssertionError("Expected ValueError")

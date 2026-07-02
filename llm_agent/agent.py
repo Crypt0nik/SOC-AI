@@ -122,17 +122,21 @@ def get_backend(env: dict | None = None) -> LLMBackend:
         Configured :class:`~llm_agent.backends.base.LLMBackend` instance.
 
     Raises:
-        ValueError: If ``LLM_BACKEND`` is not ``"claude"`` or ``"ollama"``.
+        ValueError: If ``LLM_BACKEND`` is not a supported backend.
     """
     backend_name = (env or os.environ).get("LLM_BACKEND", "ollama").lower().strip()
     if backend_name == "claude":
         from llm_agent.backends.claude_backend import ClaudeBackend
         return ClaudeBackend()
+    if backend_name == "codex":
+        from llm_agent.backends.codex_backend import CodexBackend
+        return CodexBackend()
     if backend_name == "ollama":
         from llm_agent.backends.ollama_backend import OllamaBackend
         return OllamaBackend()
     raise ValueError(
-        f"Unknown LLM_BACKEND={backend_name!r}. Supported values: 'claude', 'ollama'."
+        f"Unknown LLM_BACKEND={backend_name!r}. "
+        "Supported values: 'claude', 'codex', 'ollama'."
     )
 
 
