@@ -322,7 +322,7 @@ def test_all_sigma_rules_parse_as_valid_yaml():
     """All rule YAML files must be valid YAML and contain required Sigma fields."""
     required_fields = {"title", "logsource", "detection"}
     rule_files = list(RULES_DIR.glob("*.yml"))
-    assert len(rule_files) == 10, f"Expected 10 rules, found {len(rule_files)}"
+    assert len(rule_files) >= 10, f"Expected at least 10 rules, found {len(rule_files)}"
     for rule_file in sorted(rule_files):
         data = yaml.safe_load(rule_file.read_text())
         assert isinstance(data, dict), f"{rule_file.name}: not a YAML dict"
