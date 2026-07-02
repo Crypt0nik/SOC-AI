@@ -70,6 +70,16 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 CREATE INDEX IF NOT EXISTS idx_notifications_alert_id ON notifications(alert_id);
 
+-- ── alert_notes ─────────────────────────────────────────────
+-- Analyst notes attached to alerts (Community feature).
+CREATE TABLE IF NOT EXISTS alert_notes (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    alert_id   INTEGER NOT NULL UNIQUE REFERENCES alerts(id) ON DELETE CASCADE,
+    note       TEXT    NOT NULL,
+    created_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+CREATE INDEX IF NOT EXISTS idx_alert_notes_alert_id ON alert_notes(alert_id);
+
 -- ── pii_mapping ──────────────────────────────────────────────
 -- Reversible PII tokenisation map (local only, never sent to cloud LLM).
 -- Tokens: IP_1, USER_1, EMAIL_1 … scoped per alert.

@@ -1,0 +1,29 @@
+title: SUID Binary Abuse
+id: lnx-004-sigma
+status: experimental
+description: >
+  Detects enumeration or abuse of SUID binaries for privilege escalation,
+  including GTFOBins-based techniques.
+  Maps to MITRE ATT&CK T1548.001 (Setuid and Setgid).
+author: SOC-AI
+date: 2026/07/02
+logsource:
+  category: authentication
+  product: linux
+detection:
+  selection:
+    raw_log|contains:
+      - "find / -perm -4000"
+      - "chmod u+s"
+      - "SUID"
+      - "GTFOBins"
+  condition: selection
+level: high
+falsepositives:
+  - Security auditors running SUID enumeration during authorized assessments
+  - System hardening scripts
+soc_ai:
+  rule_id: LNX-004
+  severity: HIGH
+  source_types:
+    - ssh

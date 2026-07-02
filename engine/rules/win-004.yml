@@ -1,0 +1,30 @@
+title: Pass-the-Hash / Overpass-the-Hash Attack
+id: win-004-sigma
+status: experimental
+description: >
+  Detects Pass-the-Hash and Overpass-the-Hash lateral movement techniques
+  via NTLM authentication anomalies or known tool signatures (Mimikatz).
+  Maps to MITRE ATT&CK T1550.002 (Use Alternate Authentication Material).
+author: SOC-AI
+date: 2026/07/02
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    raw_log|contains:
+      - "NTLM"
+      - "NtLmSsp"
+      - "pass-the-hash"
+      - "pth"
+      - "sekurlsa::pth"
+  condition: selection
+level: critical
+falsepositives:
+  - Legitimate NTLM authentication in legacy environments
+  - Authorized penetration testing
+soc_ai:
+  rule_id: WIN-004
+  severity: CRITICAL
+  source_types:
+    - windows

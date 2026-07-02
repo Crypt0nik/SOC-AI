@@ -1,0 +1,29 @@
+title: SSH Authorized Keys Modified
+id: ssh-004-sigma
+status: experimental
+description: >
+  Detects modifications to SSH authorized_keys files, a common persistence
+  technique allowing backdoor access without password authentication.
+  Maps to MITRE ATT&CK T1098.004 (Account Manipulation: SSH Authorized Keys).
+author: SOC-AI
+date: 2026/07/02
+logsource:
+  category: authentication
+  product: linux
+detection:
+  selection:
+    raw_log|contains:
+      - "authorized_keys"
+      - ".ssh/authorized_keys"
+      - "ssh-rsa"
+      - "ssh-ed25519"
+  condition: selection
+level: high
+falsepositives:
+  - Legitimate SSH key provisioning by administrators
+  - Configuration management tools (Ansible, Chef, Puppet)
+soc_ai:
+  rule_id: SSH-004
+  severity: HIGH
+  source_types:
+    - ssh

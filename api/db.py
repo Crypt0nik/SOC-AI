@@ -170,6 +170,165 @@ def delete_all_alerts(conn: sqlite3.Connection) -> int:
         return 0
 
 
+def fetch_compliance_stats(
+    conn: sqlite3.Connection, window_days: int = 30
+) -> dict:
+    """Fetch aggregated metrics for compliance reporting.
+
+    Args:
+        conn: Open SQLite connection.
+        window_days: Look-back window in days.
+
+    Returns:
+        Dict with total_alerts, by_severity, mean_triage_seconds,
+        false_positive_count, top_attack_types, mitre_coverage,
+        triaged_pct, error_pct.
+    """
+    cutoff = (
+        datetime.now(UTC) - timedelta(days=window_days)
+    ).strftime("%Y-%m-%dT%H:%M:%SZ")
+    try:
+        total_row = conn.execute(
+            "SELECT COUNT(*) FROM alerts WHERE created_at >= ?", (cutoff,)
+        ).fetchone()
+        total = total_row[0] if total_row else 0
+
+        sev_rows = conn.execute(
+            "SELECT COALESCE(t.severity, a.severity) AS eff_sev, COUNT(*) AS cnt "
+            "FROM alerts a LEFT JOIN triage t ON t.alert_id = a.id "
+            "WHERE a.created_at >= ? GROUP BY eff_sev",
+            (cutoff,),
+        ).fetchall()
+
+        status_rows = conn.execute(
+            "SELECT status, COUNT(*) AS cnt FROM alerts "
+            "WHERE created_at >= ? GROUP BY status",
+            (cutoff,),
+        ).fetchall()
+        status_map = {r["status"]: r["cnt"] for r in status_rows}
+
+        mtta_row = conn.execute(
+            "SELECT AVG((julianday(t.created_at) - julianday(a.created_at)) * 86400) "
+            "FROM alerts a JOIN triage t ON t.alert_id = a.id "
+            "WHERE a.created_at >= ?",
+            (cutoff,),
+        ).fetchone()
+
+        fp_row = conn.execute(
+            "SELECT COUNT(*) FROM triage t JOIN alerts a ON a.id = t.alert_id "
+            "WHERE t.false_positive_risk = 'HIGH' AND a.created_at >= ?",
+            (cutoff,),
+        ).fetchone()
+
+        attack_rows = conn.execute(
+            "SELECT t.attack_type, COUNT(*) AS cnt "
+            "FROM triage t JOIN alerts a ON a.id = t.alert_id "
+            "WHERE t.attack_type IS NOT NULL AND a.created_at >= ? "
+            "GROUP BY t.attack_type ORDER BY cnt DESC LIMIT 5",
+            (cutoff,),
+        ).fetchall()
+
+        mitre_rows = conn.execute(
+            "SELECT DISTINCT t.mitre_id FROM triage t "
+            "JOIN alerts a ON a.id = t.alert_id "
+            "WHERE t.mitre_id IS NOT NULL AND a.created_at >= ?",
+            (cutoff,),
+        ).fetchall()
+    except sqlite3.Error as exc:
+        logger.error("fetch_compliance_stats failed: %s", exc)
+        return {}
+
+    triaged = status_map.get("triaged", 0)
+    errors = status_map.get("error", 0)
+    return {
+        "total_alerts": total,
+        "window_days": window_days,
+        "by_severity": {r["eff_sev"]: r["cnt"] for r in sev_rows},
+        "mean_triage_seconds": round(mtta_row[0] or 0, 1),
+        "false_positive_count": fp_row[0] if fp_row else 0,
+        "top_attack_types": [
+            {"type": r["attack_type"], "count": r["cnt"]} for r in attack_rows
+        ],
+        "mitre_coverage": [r["mitre_id"] for r in mitre_rows],
+        "triaged_pct": round(triaged / total * 100, 1) if total else 0,
+        "error_pct": round(errors / total * 100, 1) if total else 0,
+    }
+
+
+def fetch_ip_timeline(
+    conn: sqlite3.Connection, source_ip: str, limit: int = 50
+) -> list[dict]:
+    """Fetch alert history for a specific source IP.
+
+    Args:
+        conn: Open SQLite connection.
+        source_ip: IP address to look up.
+        limit: Maximum rows to return.
+
+    Returns:
+        List of alert dicts ordered by timestamp descending.
+    """
+    try:
+        rows = conn.execute(
+            "SELECT a.id, a.rule_id, a.rule_name, a.severity, a.matched_count, "
+            "a.timestamp, a.status, "
+            "COALESCE(t.severity, a.severity) AS eff_severity, t.attack_type, t.mitre_id "
+            "FROM alerts a LEFT JOIN triage t ON t.alert_id = a.id "
+            "WHERE a.source_ip = ? "
+            "ORDER BY a.timestamp DESC LIMIT ?",
+            (source_ip, limit),
+        ).fetchall()
+    except sqlite3.Error as exc:
+        logger.error("fetch_ip_timeline(%s) failed: %s", source_ip, exc)
+        return []
+    return [dict(r) for r in rows]
+
+
+def fetch_note(conn: sqlite3.Connection, alert_id: int) -> str | None:
+    """Fetch analyst note for an alert.
+
+    Args:
+        conn: Open SQLite connection.
+        alert_id: Alert primary key.
+
+    Returns:
+        Note text or None if no note exists.
+    """
+    try:
+        row = conn.execute(
+            "SELECT note FROM alert_notes WHERE alert_id = ?", (alert_id,)
+        ).fetchone()
+    except sqlite3.Error as exc:
+        logger.error("fetch_note(%d) failed: %s", alert_id, exc)
+        return None
+    return row["note"] if row else None
+
+
+def upsert_note(conn: sqlite3.Connection, alert_id: int, note: str) -> bool:
+    """Save or update an analyst note for an alert.
+
+    Args:
+        conn: Open SQLite connection.
+        alert_id: Alert primary key.
+        note: Note text to save.
+
+    Returns:
+        True on success, False on error.
+    """
+    try:
+        conn.execute(
+            "INSERT INTO alert_notes(alert_id, note) VALUES(?, ?) "
+            "ON CONFLICT(alert_id) DO UPDATE SET note=excluded.note, "
+            "created_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')",
+            (alert_id, note),
+        )
+        conn.commit()
+        return True
+    except sqlite3.Error as exc:
+        logger.error("upsert_note(%d) failed: %s", alert_id, exc)
+        return False
+
+
 def fetch_all_alerts_for_export(
     conn: sqlite3.Connection, severity: str | None
 ) -> list[dict]:

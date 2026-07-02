@@ -1,0 +1,31 @@
+title: DNS Tunneling / Exfiltration Attempt
+id: net-002-sigma
+status: experimental
+description: >
+  Detects DNS tunneling tools and anomalous DNS query volumes which may
+  indicate covert data exfiltration over DNS.
+  Maps to MITRE ATT&CK T1071.004 (Application Layer Protocol: DNS).
+author: SOC-AI
+date: 2026/07/02
+logsource:
+  category: network
+detection:
+  selection:
+    raw_log|contains:
+      - "iodine"
+      - "dns2tcp"
+      - "dnscat"
+  condition: selection
+level: high
+falsepositives:
+  - DNS debugging tools in authorized network testing
+  - High-volume legitimate DNS resolvers
+soc_ai:
+  rule_id: NET-002
+  severity: HIGH
+  source_types:
+    - json
+  aggregation:
+    count_by: source_ip
+    timeframe_seconds: 60
+    threshold: 20

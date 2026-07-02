@@ -21,7 +21,11 @@ function RiskScoresInner({ onIpClick }) {
   if (data.scores.length === 0) {
     return (
       <div style={{ padding: '24px', textAlign: 'center', color: T.textDimmer }}>
-        <div style={{ fontSize: '22px', marginBottom: '8px' }}>📡</div>
+        <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'center' }}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+            <circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49"/><path d="M7.76 7.76a6 6 0 0 0 0 8.49"/><path d="M20.07 4.93a10 10 0 0 1 0 14.14"/><path d="M3.93 4.93a10 10 0 0 0 0 14.14"/>
+          </svg>
+        </div>
         <div style={{ fontSize: '13px' }}>No risk data yet</div>
       </div>
     );

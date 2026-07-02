@@ -1,0 +1,30 @@
+title: UAC Bypass Attempt
+id: win-008-sigma
+status: experimental
+description: >
+  Detects known UAC bypass techniques via process names or tool signatures
+  (fodhelper, eventvwr, sdclt, UACMe/Akagi).
+  Maps to MITRE ATT&CK T1548.002 (Abuse Elevation Control Mechanism: UAC Bypass).
+author: SOC-AI
+date: 2026/07/02
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    raw_log|contains:
+      - "fodhelper"
+      - "eventvwr"
+      - "sdclt"
+      - "bypass UAC"
+      - "UACMe"
+      - "akagi"
+  condition: selection
+level: critical
+falsepositives:
+  - Authorized administrative tools using elevation mechanisms
+soc_ai:
+  rule_id: WIN-008
+  severity: CRITICAL
+  source_types:
+    - windows

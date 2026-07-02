@@ -1,0 +1,30 @@
+title: Cron Job Modification for Persistence
+id: lnx-002-sigma
+status: experimental
+description: >
+  Detects modifications to cron job directories or user crontabs, a common
+  persistence mechanism on Linux systems.
+  Maps to MITRE ATT&CK T1053.003 (Scheduled Task/Job: Cron).
+author: SOC-AI
+date: 2026/07/02
+logsource:
+  category: authentication
+  product: linux
+detection:
+  selection:
+    raw_log|contains:
+      - "crontab -e"
+      - "/etc/cron"
+      - "/var/spool/cron"
+      - "cron.d"
+      - "@reboot"
+  condition: selection
+level: medium
+falsepositives:
+  - Legitimate scheduled job administration
+  - System package installations adding cron entries
+soc_ai:
+  rule_id: LNX-002
+  severity: MEDIUM
+  source_types:
+    - ssh

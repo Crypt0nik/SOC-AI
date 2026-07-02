@@ -1,0 +1,27 @@
+title: Suspicious Large Outbound Data Transfer
+id: net-003-sigma
+status: experimental
+description: >
+  Detects unusually large outbound data transfers that may indicate data
+  exfiltration activity. Maps to MITRE ATT&CK T1048
+  (Exfiltration Over Alternative Protocol).
+author: SOC-AI
+date: 2026/07/02
+logsource:
+  category: network
+detection:
+  selection:
+    raw_log|contains:
+      - "large transfer"
+      - "exfil"
+      - "data_out"
+  condition: selection
+level: medium
+falsepositives:
+  - Authorized backups and data migrations
+  - Large file uploads by legitimate users
+soc_ai:
+  rule_id: NET-003
+  severity: MEDIUM
+  source_types:
+    - json

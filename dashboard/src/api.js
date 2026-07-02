@@ -36,3 +36,23 @@ export const fetchMitreStats = () => apiFetch('/pro/mitre-stats');
 
 export const fetchRiskScores = (limit = 10) =>
   apiFetch(`/pro/risk-scores?limit=${limit}`);
+
+export const fetchIpTimeline = (sourceIp) =>
+  apiFetch(`/pro/ip-timeline/${encodeURIComponent(sourceIp)}`);
+
+// ── Enterprise endpoints ─────────────────────────────────────
+export const fetchComplianceStats = (windowDays = 30) =>
+  apiFetch(`/enterprise/compliance?window_days=${windowDays}`);
+
+// ── Notes (Community) ────────────────────────────────────────
+export const fetchNote = (alertId) => apiFetch(`/alerts/${alertId}/note`);
+
+export const saveNote = (alertId, note) =>
+  fetch(`${BASE}/alerts/${alertId}/note`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ note }),
+  }).then((r) => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  });

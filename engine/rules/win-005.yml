@@ -1,0 +1,29 @@
+title: Suspicious Scheduled Task Created
+id: win-005-sigma
+status: experimental
+description: >
+  Detects creation of scheduled tasks commonly used for persistence.
+  Covers schtasks.exe, PowerShell Register-ScheduledTask, and
+  Windows Task Scheduler events. Maps to MITRE ATT&CK T1053.005.
+author: SOC-AI
+date: 2026/07/02
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    raw_log|contains:
+      - "schtasks"
+      - "Task Scheduler"
+      - "TaskCreated"
+      - "Register-ScheduledTask"
+  condition: selection
+level: high
+falsepositives:
+  - Legitimate software installations using scheduled tasks
+  - System administration automation scripts
+soc_ai:
+  rule_id: WIN-005
+  severity: HIGH
+  source_types:
+    - windows

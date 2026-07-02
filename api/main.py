@@ -30,8 +30,12 @@ from api.db import (
     fetch_alert_by_id,
     fetch_alerts,
     fetch_all_alerts_for_export,
+    fetch_compliance_stats,
+    fetch_ip_timeline,
+    fetch_note,
     fetch_stats,
     get_connection,
+    upsert_note,
 )
 from api.models import (
     AlertDetail,
@@ -58,7 +62,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["GET", "DELETE"],
+    allow_methods=["GET", "DELETE", "POST"],
     allow_headers=["*", "X-Admin-Token"],
 )
 
@@ -401,6 +405,95 @@ def risk_scores(
             for r in rows
         ]
     }
+
+
+@app.get("/pro/ip-timeline/{source_ip}")
+def ip_timeline(
+    source_ip: str,
+    db: sqlite3.Connection = Depends(get_db),
+    _: None = Depends(require_pro),
+) -> dict:
+    """Return alert history for a specific source IP (last 50 alerts).
+
+    Args:
+        source_ip: IP address to look up.
+        db: Injected SQLite connection.
+
+    Returns:
+        Dict with ip, alerts list, and severity summary.
+    """
+    rows = fetch_ip_timeline(db, source_ip)
+    return {"ip": source_ip, "alerts": rows, "total": len(rows)}
+
+
+# ── Enterprise routes ─────────────────────────────────────────────────────────
+
+
+@app.get("/enterprise/compliance")
+def compliance_report(
+    window_days: int = Query(30, ge=1, le=365),
+    db: sqlite3.Connection = Depends(get_db),
+    _: None = Depends(require_pro),
+) -> dict:
+    """Return compliance metrics for NIS2/ISO27001 reporting.
+
+    Args:
+        window_days: Look-back window in days (1–365).
+        db: Injected SQLite connection.
+
+    Returns:
+        Compliance metrics dict.
+    """
+    return fetch_compliance_stats(db, window_days)
+
+
+# ── Notes routes (Community) ──────────────────────────────────────────────────
+
+
+@app.get("/alerts/{alert_id}/note")
+def get_note_endpoint(
+    alert_id: int,
+    db: sqlite3.Connection = Depends(get_db),
+) -> dict:
+    """Fetch analyst note for a single alert.
+
+    Args:
+        alert_id: Alert primary key.
+        db: Injected SQLite connection.
+
+    Returns:
+        Dict with note text (empty string if none).
+    """
+    note = fetch_note(db, alert_id)
+    return {"alert_id": alert_id, "note": note or ""}
+
+
+@app.post("/alerts/{alert_id}/note")
+def set_note_endpoint(
+    alert_id: int,
+    body: dict,
+    db: sqlite3.Connection = Depends(get_db),
+) -> dict:
+    """Save or update analyst note for an alert.
+
+    Args:
+        alert_id: Alert primary key.
+        body: JSON body containing ``note`` string.
+        db: Injected SQLite connection.
+
+    Returns:
+        Dict confirming saved alert_id.
+
+    Raises:
+        HTTPException: 400 if note text is missing.
+    """
+    note = body.get("note", "")
+    if not isinstance(note, str):
+        raise HTTPException(status_code=400, detail="note must be a string")
+    ok = upsert_note(db, alert_id, note)
+    if not ok:
+        raise HTTPException(status_code=500, detail="Failed to save note")
+    return {"alert_id": alert_id, "saved": True}
 
 
 if __name__ == "__main__":

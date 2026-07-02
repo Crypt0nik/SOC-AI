@@ -1,7 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import AlertDetail from './components/AlertDetail.jsx';
 import AlertList from './components/AlertList.jsx';
+import CompliancePage from './components/CompliancePage.jsx';
 import ExportButton from './components/ExportButton.jsx';
+import IpTimeline from './components/IpTimeline.jsx';
 import MitreHeatmap from './components/MitreHeatmap.jsx';
 import RiskScores from './components/RiskScores.jsx';
 import SeverityFilter from './components/SeverityFilter.jsx';
@@ -58,7 +60,8 @@ function AppInner() {
   const { isPro } = usePlan();
   const [isDark, setIsDark] = useState(false);
   const T = isDark ? DARK : LIGHT;
-  const [view, setView] = useState('alerts'); // 'alerts' | 'intelligence'
+  const [view, setView] = useState('alerts'); // 'alerts' | 'intelligence' | 'compliance'
+  const [ipTimelineTarget, setIpTimelineTarget] = useState(null);
 
   const [severity, setSeverity] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
@@ -235,9 +238,17 @@ function AppInner() {
                 key: 'intelligence',
                 icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="3" width="20" height="4" rx="1"/><rect x="2" y="10" width="20" height="4" rx="1"/><rect x="2" y="17" width="20" height="4" rx="1"/></svg>,
                 label: 'Intelligence',
-                pro: !isPro,
+                badge: !isPro ? 'PRO' : null,
+                badgeColor: '#FF6600',
               },
-            ].map(({ key, icon, label, pro }) => (
+              {
+                key: 'compliance',
+                icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
+                label: 'Compliance',
+                badge: !isPro ? 'PRO' : null,
+                badgeColor: '#FF6600',
+              },
+            ].map(({ key, icon, label, badge, badgeColor }) => (
               <button key={key} onClick={() => setView(key)} style={{
                 display: 'flex', alignItems: 'center', gap: '5px',
                 padding: '3px 10px', borderRadius: '5px', fontSize: '12px', fontWeight: 500,
@@ -247,7 +258,7 @@ function AppInner() {
                 boxShadow: view === key ? `0 1px 3px rgba(0,0,0,0.1)` : 'none',
               }}>
                 {icon}{label}
-                {pro && <span style={{ fontSize: '9px', fontWeight: 700, color: '#FF6600', border: '1px solid #FF6600', borderRadius: '3px', padding: '0 4px', lineHeight: '14px' }}>PRO</span>}
+                {badge && <span style={{ fontSize: '9px', fontWeight: 700, color: badgeColor, border: `1px solid ${badgeColor}`, borderRadius: '3px', padding: '0 4px', lineHeight: '14px' }}>{badge}</span>}
               </button>
             ))}
           </div>
@@ -479,7 +490,7 @@ function AppInner() {
 
         {/* ── Main ── */}
         <main style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-          {view === 'alerts' ? (
+          {view === 'alerts' && (
             <AlertList
               key={severity ?? 'all'}
               severity={severity}
@@ -492,7 +503,8 @@ function AppInner() {
               onAlertsLoaded={handleAlertsLoaded}
               onDeleted={(id) => { if (selectedId === id) setSelectedId(null); }}
             />
-          ) : (
+          )}
+          {view === 'intelligence' && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '16px', alignItems: 'start' }}>
               {/* MITRE Heatmap */}
               <div style={{ backgroundColor: T.surface, border: `1px solid ${T.border}`, borderRadius: '10px', padding: '16px' }}>
@@ -511,11 +523,21 @@ function AppInner() {
                   Top Risk IPs
                   {!isPro && <span style={{ fontSize: '9px', fontWeight: 700, color: '#FF6600', border: '1px solid #FF6600', borderRadius: '3px', padding: '0 5px', lineHeight: '16px', marginLeft: '2px' }}>PRO</span>}
                 </div>
-                <RiskScores onIpClick={(ip) => { setSearch(ip); setView('alerts'); }} />
+                <RiskScores onIpClick={setIpTimelineTarget} />
               </div>
             </div>
           )}
+          {view === 'compliance' && <CompliancePage />}
         </main>
+
+        {/* ── IP Timeline panel ── */}
+        {ipTimelineTarget && (
+          <IpTimeline
+            sourceIp={ipTimelineTarget}
+            onClose={() => setIpTimelineTarget(null)}
+            onSelectAlert={(id) => { setSelectedId(id); }}
+          />
+        )}
 
         {/* ── Detail panel ── */}
         {selectedId !== null && (

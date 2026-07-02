@@ -40,7 +40,11 @@ def send_slack_notification(
     emoji = _SEVERITY_EMOJI.get(eff_sev, "⚪")
 
     fields = [
-        {"title": "Rule", "value": f"`{alert.get('rule_id')}` — {alert.get('rule_name')}", "short": False},
+        {
+            "title": "Rule",
+            "value": f"`{alert.get('rule_id')}` — {alert.get('rule_name')}",
+            "short": False,
+        },
         {"title": "Severity", "value": f"{emoji} {eff_sev}", "short": True},
     ]
     if alert.get("source_ip"):

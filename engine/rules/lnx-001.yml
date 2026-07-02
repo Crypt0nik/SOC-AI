@@ -1,0 +1,31 @@
+title: Linux Privilege Escalation Attempt
+id: lnx-001-sigma
+status: experimental
+description: >
+  Detects common Linux privilege escalation techniques including sudo abuse,
+  sudoers modification, and NOPASSWD entries.
+  Maps to MITRE ATT&CK T1548.003 (Sudo and Sudo Caching).
+author: SOC-AI
+date: 2026/07/02
+logsource:
+  category: authentication
+  product: linux
+detection:
+  selection:
+    raw_log|contains:
+      - "sudo -l"
+      - "sudo su"
+      - "/etc/sudoers"
+      - "NOPASSWD"
+      - "pkexec"
+      - "doas"
+  condition: selection
+level: high
+falsepositives:
+  - Legitimate administrators checking sudo permissions
+  - DevOps tooling requiring privilege escalation
+soc_ai:
+  rule_id: LNX-001
+  severity: HIGH
+  source_types:
+    - ssh

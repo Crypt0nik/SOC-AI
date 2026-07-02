@@ -1,0 +1,30 @@
+title: Reverse Shell Attempt
+id: lnx-003-sigma
+status: experimental
+description: >
+  Detects common reverse shell techniques via bash, netcat, Python, or Perl.
+  These patterns are rarely legitimate in production environments.
+  Maps to MITRE ATT&CK T1059.004 (Unix Shell) and T1071 (Application Layer Protocol).
+author: SOC-AI
+date: 2026/07/02
+logsource:
+  category: authentication
+  product: linux
+detection:
+  selection:
+    raw_log|contains:
+      - "bash -i"
+      - "/dev/tcp/"
+      - "nc -e"
+      - "ncat"
+      - "mkfifo"
+  condition: selection
+level: critical
+falsepositives:
+  - Authorized red team exercises
+  - Network debugging in controlled environments
+soc_ai:
+  rule_id: LNX-003
+  severity: CRITICAL
+  source_types:
+    - ssh

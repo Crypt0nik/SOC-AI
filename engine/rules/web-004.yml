@@ -1,0 +1,31 @@
+title: Web Command Injection Attempt
+id: web-004-sigma
+status: experimental
+description: >
+  Detects OS command injection patterns in HTTP requests targeting web
+  applications. Covers common shell command separators and known payloads.
+  Maps to MITRE ATT&CK T1059 (Command and Scripting Interpreter).
+author: SOC-AI
+date: 2026/07/02
+logsource:
+  category: webserver
+detection:
+  selection:
+    raw_log|contains:
+      - ";id"
+      - "|id"
+      - ";whoami"
+      - "|whoami"
+      - ";cat /etc"
+      - "eval("
+      - "system("
+  condition: selection
+level: critical
+falsepositives:
+  - Authorized penetration testing
+  - Web application security scanners
+soc_ai:
+  rule_id: WEB-004
+  severity: CRITICAL
+  source_types:
+    - web

@@ -1,0 +1,33 @@
+title: RDP Brute Force Attempt
+id: win-007-sigma
+status: experimental
+description: >
+  Detects repeated RDP authentication failures from the same source IP
+  within a short window. Indicates brute force on Remote Desktop Protocol.
+  Maps to MITRE ATT&CK T1110.001 (Brute Force: Password Guessing).
+author: SOC-AI
+date: 2026/07/02
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    raw_log|contains:
+      - "TerminalServices"
+      - "RDP"
+      - "4625"
+      - "Logon Type: 10"
+  condition: selection
+level: high
+falsepositives:
+  - Users mistyping their password on RDP login
+  - Misconfigured RDP clients with cached wrong credentials
+soc_ai:
+  rule_id: WIN-007
+  severity: HIGH
+  source_types:
+    - windows
+  aggregation:
+    count_by: source_ip
+    timeframe_seconds: 120
+    threshold: 5

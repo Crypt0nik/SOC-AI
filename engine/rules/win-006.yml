@@ -1,0 +1,30 @@
+title: PowerShell Encoded Command Execution
+id: win-006-sigma
+status: experimental
+description: >
+  Detects execution of PowerShell with encoded commands or execution policy
+  bypass flags — common in malware dropper and fileless attack techniques.
+  Maps to MITRE ATT&CK T1059.001 (Command and Scripting Interpreter: PowerShell).
+author: SOC-AI
+date: 2026/07/02
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    raw_log|contains:
+      - "EncodedCommand"
+      - "-enc "
+      - "powershell -"
+      - "bypass"
+      - "hidden"
+  condition: selection
+level: high
+falsepositives:
+  - Legitimate administrative PowerShell scripts using encoded commands
+  - Software deployment tools
+soc_ai:
+  rule_id: WIN-006
+  severity: HIGH
+  source_types:
+    - windows

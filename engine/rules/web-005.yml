@@ -1,0 +1,29 @@
+title: Server-Side Request Forgery (SSRF) Attempt
+id: web-005-sigma
+status: experimental
+description: >
+  Detects SSRF attempts targeting internal metadata services, local loopback,
+  or non-HTTP schemes in HTTP request parameters.
+  Maps to MITRE ATT&CK T1190 (Exploit Public-Facing Application).
+author: SOC-AI
+date: 2026/07/02
+logsource:
+  category: webserver
+detection:
+  selection:
+    raw_log|contains:
+      - "169.254.169.254"
+      - "metadata.google"
+      - "file:///"
+      - "dict://"
+      - "gopher://"
+  condition: selection
+level: high
+falsepositives:
+  - Authorized cloud metadata access tests
+  - Internal health check systems
+soc_ai:
+  rule_id: WEB-005
+  severity: HIGH
+  source_types:
+    - web

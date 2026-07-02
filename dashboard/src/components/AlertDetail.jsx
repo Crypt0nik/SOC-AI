@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { fetchAlert } from '../api.js';
+import { useEffect, useRef, useState } from 'react';
+import { fetchAlert, fetchNote, saveNote } from '../api.js';
 import { SEVERITY_COLOR } from '../severity.js';
 import { useTheme } from '../theme.js';
 
@@ -102,6 +102,75 @@ function SentenceList({ text }) {
         <li key={i} style={{ fontSize: '13px', lineHeight: 1.55, color: T.text }}>{s}</li>
       ))}
     </ul>
+  );
+}
+
+function AnalystNotes({ alertId }) {
+  const { T } = useTheme();
+  const [note, setNote] = useState('');
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const saveTimer = useRef(null);
+
+  useEffect(() => {
+    fetchNote(alertId)
+      .then((data) => setNote(data.note ?? ''))
+      .catch(() => {});
+  }, [alertId]);
+
+  const handleChange = (e) => {
+    setNote(e.target.value);
+    setSaved(false);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      setSaving(true);
+      saveNote(alertId, e.target.value)
+        .then(() => { setSaved(true); setSaving(false); })
+        .catch(() => setSaving(false));
+    }, 800);
+  };
+
+  return (
+    <div style={{ borderTop: `1px solid ${T.borderSubtle}`, paddingTop: '14px', marginTop: '14px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '8px' }}>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={T.textDim} strokeWidth="2" strokeLinecap="round">
+          <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+        <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', color: T.textDim, fontWeight: 600 }}>
+          Analyst Notes
+        </span>
+        {saving && <span style={{ fontSize: '10px', color: T.textDimmer }}>saving…</span>}
+        {saved && !saving && (
+          <span style={{ fontSize: '10px', color: '#4ade80', display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            saved
+          </span>
+        )}
+      </div>
+      <textarea
+        value={note}
+        onChange={handleChange}
+        placeholder="Add investigation notes, context, or decisions…"
+        rows={4}
+        style={{
+          width: '100%',
+          backgroundColor: T.terminalBg,
+          border: `1px solid ${T.borderSubtle}`,
+          borderRadius: '6px',
+          padding: '10px 12px',
+          fontSize: '12px',
+          color: T.text,
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          lineHeight: 1.55,
+          resize: 'vertical',
+          outline: 'none',
+          transition: 'border-color 0.15s',
+          boxSizing: 'border-box',
+        }}
+        onFocus={(e) => { e.target.style.borderColor = T.border; }}
+        onBlur={(e) => { e.target.style.borderColor = T.borderSubtle; }}
+      />
+    </div>
   );
 }
 
@@ -333,6 +402,9 @@ export default function AlertDetail({ alertId, onClose, onNavigate, canPrev, can
                   </div>
                 )}
               </Section>
+
+              {/* Analyst Notes */}
+              <AnalystNotes alertId={alertId} />
 
               {/* Keyboard hints */}
               <div style={{ marginTop: '20px', paddingTop: '12px', borderTop: `1px solid ${T.borderSubtle}`, display: 'flex', gap: '14px' }}>

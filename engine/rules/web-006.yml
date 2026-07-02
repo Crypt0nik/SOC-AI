@@ -1,0 +1,31 @@
+title: Sensitive File Access via Web
+id: web-006-sigma
+status: experimental
+description: >
+  Detects HTTP requests targeting sensitive system files or configuration files
+  via path traversal or direct access. Maps to MITRE ATT&CK T1083
+  (File and Directory Discovery) and T1552.001 (Credentials in Files).
+author: SOC-AI
+date: 2026/07/02
+logsource:
+  category: webserver
+detection:
+  selection:
+    raw_log|contains:
+      - "/etc/passwd"
+      - "/etc/shadow"
+      - "/.env"
+      - "/proc/self"
+      - "wp-config.php"
+      - ".git/config"
+      - "/admin/config"
+  condition: selection
+level: high
+falsepositives:
+  - Authorized security scanners
+  - Penetration testers
+soc_ai:
+  rule_id: WEB-006
+  severity: HIGH
+  source_types:
+    - web
